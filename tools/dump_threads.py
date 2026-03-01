@@ -8,7 +8,7 @@ with YAML frontmatter for memex ingestion. No AI model required.
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from mcp.types import TextContent
 
@@ -52,7 +52,7 @@ class DumpThreadsTool(BaseTool):
             "additionalProperties": False,
         }
 
-    def get_annotations(self) -> Optional[dict[str, Any]]:
+    def get_annotations(self) -> dict[str, Any] | None:
         return {"readOnlyHint": True}
 
     def get_system_prompt(self) -> str:
@@ -102,7 +102,7 @@ class DumpThreadsTool(BaseTool):
             # Collect memory-resident threads
             contexts: list[ThreadContext] = []
             seen_ids: set[str] = set()
-            for key, value_json in raw.items():
+            for _key, value_json in raw.items():
                 try:
                     ctx = ThreadContext.model_validate_json(value_json)
                     contexts.append(ctx)

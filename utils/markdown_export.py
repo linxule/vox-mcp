@@ -8,7 +8,7 @@ Obsidian Dataview queries. Each exported thread gets its own .md file.
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from utils.conversation_memory import ThreadContext
 
@@ -89,7 +89,7 @@ def _aggregate_metadata(context: ThreadContext) -> dict[str, Any]:
 
 def _yaml_escape(value: str) -> str:
     """Escape a string for safe YAML inline inclusion."""
-    if any(c in value for c in ':[]{},\n"\'#&*!|>\\'):
+    if any(c in value for c in ":[]{},\n\"'#&*!|>\\"):
         escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
         return f'"{escaped}"'
     return value
@@ -147,24 +147,29 @@ def render_thread_markdown(context: ThreadContext) -> str:
 
     # Summary table
     models_display = ", ".join(
-        f"{m} ({p})" if p else m
-        for m, p in _zip_models_providers(meta["models_used"], meta["providers_used"])
+        f"{m} ({p})" if p else m for m, p in _zip_models_providers(meta["models_used"], meta["providers_used"])
     )
     files_display = ", ".join(meta["files_referenced"]) if meta["files_referenced"] else "none"
-    token_display = f"{meta['tokens_in']:,} in / {meta['tokens_out']:,} out" if (meta["tokens_in"] or meta["tokens_out"]) else "not tracked"
+    token_display = (
+        f"{meta['tokens_in']:,} in / {meta['tokens_out']:,} out"
+        if (meta["tokens_in"] or meta["tokens_out"])
+        else "not tracked"
+    )
 
-    lines.extend([
-        "| Field | Value |",
-        "|-------|-------|",
-        f"| **Client** | {client_str} |",
-        f"| **Created** | {context.created_at} |",
-        f"| **Duration** | {duration_str} |",
-        f"| **Turns** | {len(context.turns)} |",
-        f"| **Models** | {models_display or 'none'} |",
-        f"| **Tokens** | {token_display} |",
-        f"| **Files** | {files_display} |",
-        "",
-    ])
+    lines.extend(
+        [
+            "| Field | Value |",
+            "|-------|-------|",
+            f"| **Client** | {client_str} |",
+            f"| **Created** | {context.created_at} |",
+            f"| **Duration** | {duration_str} |",
+            f"| **Turns** | {len(context.turns)} |",
+            f"| **Models** | {models_display or 'none'} |",
+            f"| **Tokens** | {token_display} |",
+            f"| **Files** | {files_display} |",
+            "",
+        ]
+    )
 
     # Render turns
     for i, turn in enumerate(context.turns, 1):
@@ -198,7 +203,7 @@ def render_thread_markdown(context: ThreadContext) -> str:
     return "\n".join(lines)
 
 
-def _zip_models_providers(models: list[str], providers: list[str]) -> list[tuple[str, Optional[str]]]:
+def _zip_models_providers(models: list[str], providers: list[str]) -> list[tuple[str, str | None]]:
     """Zip models with their providers, padding with None if lists differ in length."""
     result = []
     for i, model in enumerate(models):
@@ -207,10 +212,11 @@ def _zip_models_providers(models: list[str], providers: list[str]) -> list[tuple
     return result
 
 
-def export_thread_to_file(context: ThreadContext, output_dir: Optional[Path] = None) -> str:
+def export_thread_to_file(context: ThreadContext, output_dir: Path | None = None) -> str:
     """Write a thread as a markdown file and return the file path."""
     if output_dir is None:
         from config import VOX_THREADS_DIR
+
         output_dir = VOX_THREADS_DIR / "exports"
 
     output_dir.mkdir(parents=True, exist_ok=True)

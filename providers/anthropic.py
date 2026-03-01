@@ -1,11 +1,7 @@
 """Anthropic Claude model provider implementation."""
 
 import logging
-import os
-import time
-from typing import List, Optional
 
-import anthropic
 from anthropic import Anthropic
 
 from .base import ModelProvider
@@ -66,6 +62,7 @@ class AnthropicModelProvider(ModelProvider):
 
         # Check restrictions
         from utils.model_restrictions import get_restriction_service
+
         restriction_service = get_restriction_service()
         if not restriction_service.is_allowed(ProviderType.ANTHROPIC, resolved_name, model_name):
             raise ValueError(f"Anthropic model '{model_name}' is not allowed by current restrictions.")
@@ -81,7 +78,7 @@ class AnthropicModelProvider(ModelProvider):
         resolved_name = self._resolve_model_name(model_name)
         return resolved_name in self.SUPPORTED_MODELS
 
-    def _resolve_model_name(self, model_name: str) -> Optional[str]:
+    def _resolve_model_name(self, model_name: str) -> str | None:
         """Resolve aliases to actual model names."""
         # Direct match
         if model_name in self.SUPPORTED_MODELS:
@@ -98,10 +95,10 @@ class AnthropicModelProvider(ModelProvider):
         self,
         prompt: str,
         model_name: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         temperature: float = 0.8,
-        max_output_tokens: Optional[int] = None,
-        **kwargs
+        max_output_tokens: int | None = None,
+        **kwargs,
     ) -> ModelResponse:
         """Generate content using Anthropic API.
 
@@ -138,7 +135,7 @@ class AnthropicModelProvider(ModelProvider):
             # Add temperature if supported
             if capabilities.supports_temperature:
                 # Apply temperature constraints
-                if hasattr(capabilities, 'temperature_constraint') and capabilities.temperature_constraint:
+                if hasattr(capabilities, "temperature_constraint") and capabilities.temperature_constraint:
                     temperature = capabilities.temperature_constraint.get_corrected_value(temperature)
                 request_params["temperature"] = temperature
 
@@ -166,20 +163,20 @@ class AnthropicModelProvider(ModelProvider):
 
             if response.content:
                 for block in response.content:
-                    if hasattr(block, 'type'):
-                        if block.type == 'thinking':
+                    if hasattr(block, "type"):
+                        if block.type == "thinking":
                             thinking_content += f"[THINKING]\n{block.thinking}\n\n"
-                        elif block.type == 'text':
+                        elif block.type == "text":
                             content += block.text
-                    elif hasattr(block, 'text'):
+                    elif hasattr(block, "text"):
                         content += block.text
 
             # Include thinking content in final response if present
             final_content = f"{thinking_content}{content}" if thinking_content else content
 
             # Build usage dict
-            input_tokens = getattr(response.usage, 'input_tokens', 0)
-            output_tokens = getattr(response.usage, 'output_tokens', 0)
+            input_tokens = getattr(response.usage, "input_tokens", 0)
+            output_tokens = getattr(response.usage, "output_tokens", 0)
             usage = {
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
@@ -202,13 +199,13 @@ class AnthropicModelProvider(ModelProvider):
             logger.error(f"Anthropic API error for model {model_name}: {e}")
             raise RuntimeError(f"Anthropic API error for model {model_name}: {e}")
 
-    def _convert_messages(self, messages: List[dict]) -> List[dict]:
+    def _convert_messages(self, messages: list[dict]) -> list[dict]:
         """Convert messages to Anthropic format."""
         converted = []
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
-            
+
             # Convert OpenAI format to Anthropic format
             if role == "system":
                 # System messages are handled separately in Anthropic
@@ -217,17 +214,14 @@ class AnthropicModelProvider(ModelProvider):
                 role = "assistant"
             else:  # user, function, etc.
                 role = "user"
-            
-            converted.append({
-                "role": role,
-                "content": content
-            })
-        
+
+            converted.append({"role": role, "content": content})
+
         return converted
 
-    def get_supported_models(self) -> List[str]:
+    def get_supported_models(self) -> list[str]:
         """Get list of supported model names including aliases."""
         models = list(self.SUPPORTED_MODELS.keys())
         for capabilities in self.SUPPORTED_MODELS.values():
             models.extend(capabilities.aliases)
-        return models 
+        return models

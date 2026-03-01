@@ -1,7 +1,6 @@
 """Moonshot AI provider implementation for Kimi models."""
 
 import logging
-from typing import Optional
 
 from .openai_compatible import OpenAICompatibleProvider
 from .shared import ModelCapabilities, ModelResponse, ProviderType
@@ -97,9 +96,9 @@ class MoonshotProvider(OpenAICompatibleProvider):
         self,
         prompt: str,
         model_name: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         temperature: float = 0.6,
-        max_output_tokens: Optional[int] = None,
+        max_output_tokens: int | None = None,
         **kwargs,
     ) -> ModelResponse:
         """Generate content using Moonshot AI models.

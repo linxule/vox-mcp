@@ -22,7 +22,7 @@ include = ["tools*", "providers*", "utils*", "conf*"]
 py-modules = ["server", "config"]
 
 [tool.setuptools.package-data]
-"*" = ["conf/*.json"]
+"conf" = ["*.json"]
 
 [project.scripts]
 vox-mcp = "server:run"

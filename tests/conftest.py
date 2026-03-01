@@ -122,10 +122,7 @@ def mock_provider_availability(request, monkeypatch):
         test_name = request.node.name if hasattr(request, "node") else ""
 
         # Allow auto mode for tests in auto mode files or with auto in the name
-        if (
-            "auto_mode" in test_file.lower()
-            or "auto" in test_name.lower()
-        ):
+        if "auto_mode" in test_file.lower() or "auto" in test_name.lower():
             # Call original method logic
             from config import DEFAULT_MODEL
 

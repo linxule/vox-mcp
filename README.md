@@ -1,10 +1,16 @@
 # Vox MCP
 
-Multi-model AI gateway for [MCP](https://modelcontextprotocol.io) clients. Routes prompts to external AI providers with conversation memory — no system prompt injection, no response modification, pure API passthrough.
+Multi-model AI gateway for [MCP](https://modelcontextprotocol.io) clients.
+
+## Why
+
+MCP clients like Claude Code, Claude Desktop, and Cursor are locked to their host model. Vox gives them access to every other model — Gemini, GPT, Grok, DeepSeek, Kimi, or your local Ollama — through a single `chat` tool.
+
+The design is deliberately minimal: prompts go to providers unmodified, responses come back unmodified. No system prompt injection. No response formatting. No behavioral directives. The only value Vox adds is routing and conversation memory — everything else is pure passthrough.
 
 ## What it does
 
-Vox gives any MCP client (Claude Code, Claude Desktop, Cursor, etc.) access to external AI models through a single `chat` tool. You send a prompt, optionally attach files or images, and get back the model's response. Conversation threads are maintained in memory via `continuation_id` for multi-turn exchanges.
+Send a prompt, optionally attach files or images, pick a model (or let the agent pick), and get back the model's raw response. Conversation threads persist in memory via `continuation_id` for multi-turn exchanges across any provider — start a thread with Gemini, continue it with GPT. Threads are shadow-persisted to disk as JSONL for durability and can be exported as Markdown.
 
 **3 tools:**
 
@@ -23,7 +29,7 @@ Vox gives any MCP client (Claude Code, Claude Desktop, Cursor, etc.) access to e
 | Anthropic | `ANTHROPIC_API_KEY` | claude-4-opus, claude-4-sonnet |
 | xAI | `XAI_API_KEY` | grok-3, grok-3-fast |
 | DeepSeek | `DEEPSEEK_API_KEY` | deepseek-chat, deepseek-reasoner |
-| Moonshot (Kimi) | `MOONSHOT_API_KEY` | kimi-k2-turbo, kimi-k2.5 |
+| Moonshot (Kimi) | `MOONSHOT_API_KEY` | kimi-k2-thinking-turbo, kimi-k2.5 |
 | OpenRouter | `OPENROUTER_API_KEY` | Any OpenRouter model |
 | Custom | `CUSTOM_API_URL` | Ollama, vLLM, LM Studio, etc. |
 
@@ -168,6 +174,8 @@ uv sync
 uv run python -c "import server"   # smoke test
 uv run pytest                       # run tests
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for code style, project structure, and how to add providers.
 
 ## License
 

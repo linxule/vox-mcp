@@ -1,7 +1,7 @@
 """Helper types for validating model thinking/reasoning parameters."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 __all__ = [
     "ThinkingConstraint",
@@ -104,7 +104,7 @@ class TokenBudgetThinkingConstraint(ThinkingConstraint):
     def __init__(
         self,
         max_tokens: int,
-        budgets: Optional[dict[str, float]] = None,
+        budgets: dict[str, float] | None = None,
         default_mode: str = "medium",
         min_tokens: int = 1024,
     ):
@@ -123,10 +123,7 @@ class TokenBudgetThinkingConstraint(ThinkingConstraint):
         return self._default_mode
 
     def get_description(self) -> str:
-        return (
-            f"Token budget thinking (max {self.max_tokens} tokens). "
-            f"Modes: {', '.join(sorted(self.budgets.keys()))}"
-        )
+        return f"Token budget thinking (max {self.max_tokens} tokens). Modes: {', '.join(sorted(self.budgets.keys()))}"
 
 
 class EffortLevelThinkingConstraint(ThinkingConstraint):
@@ -138,7 +135,7 @@ class EffortLevelThinkingConstraint(ThinkingConstraint):
 
     def __init__(
         self,
-        effort_map: Optional[dict[str, str]] = None,
+        effort_map: dict[str, str] | None = None,
         default_mode: str = "medium",
     ):
         self.effort_map = effort_map or dict(DEFAULT_EFFORT_MAP)

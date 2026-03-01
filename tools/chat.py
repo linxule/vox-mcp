@@ -7,7 +7,7 @@ It supports file context embedding, images, and multi-turn conversation threads.
 """
 
 import os
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
 
@@ -37,11 +37,11 @@ class ChatRequest(ToolRequest):
     """Request model for Chat tool"""
 
     prompt: str = Field(..., description=CHAT_FIELD_DESCRIPTIONS["prompt"])
-    absolute_file_paths: Optional[list[str]] = Field(
+    absolute_file_paths: list[str] | None = Field(
         default_factory=list,
         description=CHAT_FIELD_DESCRIPTIONS["absolute_file_paths"],
     )
-    images: Optional[list[str]] = Field(default_factory=list, description=CHAT_FIELD_DESCRIPTIONS["images"])
+    images: list[str] | None = Field(default_factory=list, description=CHAT_FIELD_DESCRIPTIONS["images"])
 
 
 class ChatTool(SimpleTool):
@@ -155,7 +155,7 @@ class ChatTool(SimpleTool):
         # Use SimpleTool's Chat-style prompt preparation
         return self.prepare_chat_style_prompt(request)
 
-    def _validate_file_paths(self, request) -> Optional[str]:
+    def _validate_file_paths(self, request) -> str | None:
         """Expand ~ in file paths before validation."""
 
         files = self.get_request_files(request)

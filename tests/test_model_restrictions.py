@@ -48,7 +48,9 @@ class TestModelRestrictionService:
 
     def test_load_multiple_models_restriction(self):
         """Test loading multiple allowed models."""
-        with patch.dict(os.environ, {"OPENAI_ALLOWED_MODELS": "o3-mini,o4-mini", "GOOGLE_ALLOWED_MODELS": "flash,gemini-3.1"}):
+        with patch.dict(
+            os.environ, {"OPENAI_ALLOWED_MODELS": "o3-mini,o4-mini", "GOOGLE_ALLOWED_MODELS": "flash,gemini-3.1"}
+        ):
             # Instantiate providers so alias resolution for allow-lists is available
             openai_provider = OpenAIModelProvider(api_key="test-key")
             gemini_provider = GeminiModelProvider(api_key="test-key")
@@ -63,7 +65,6 @@ class TestModelRestrictionService:
                 return mapping.get(provider_type)
 
             with patch.object(ModelProviderRegistry, "get_provider", side_effect=fake_get_provider):
-
                 service = ModelRestrictionService()
 
                 # Check OpenAI models
@@ -126,7 +127,9 @@ class TestModelRestrictionService:
 
     def test_shorthand_names_in_restrictions(self):
         """Test that shorthand names work in restrictions."""
-        with patch.dict(os.environ, {"OPENAI_ALLOWED_MODELS": "o4mini,o3mini", "GOOGLE_ALLOWED_MODELS": "flash,gemini-3.1"}):
+        with patch.dict(
+            os.environ, {"OPENAI_ALLOWED_MODELS": "o4mini,o3mini", "GOOGLE_ALLOWED_MODELS": "flash,gemini-3.1"}
+        ):
             # Instantiate providers so the registry can resolve aliases
             OpenAIModelProvider(api_key="test-key")
             GeminiModelProvider(api_key="test-key")
@@ -302,7 +305,6 @@ class TestProviderIntegration:
         from providers.registry import ModelProviderRegistry
 
         with patch.object(ModelProviderRegistry, "get_provider", return_value=provider):
-
             # Test case: Only alias "flash" is allowed, not the full name
             # If parameters are in wrong order, this test will catch it
 

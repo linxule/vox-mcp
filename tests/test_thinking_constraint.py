@@ -9,15 +9,14 @@ import pytest
 from providers.shared.model_capabilities import ModelCapabilities
 from providers.shared.provider_type import ProviderType
 from providers.shared.thinking import (
-    AlwaysOnThinkingConstraint,
     DEFAULT_EFFORT_MAP,
     DEFAULT_TOKEN_BUDGETS,
+    VALID_THINKING_MODES,
+    AlwaysOnThinkingConstraint,
     EffortLevelThinkingConstraint,
     ThinkingConstraint,
     TokenBudgetThinkingConstraint,
-    VALID_THINKING_MODES,
 )
-
 
 # ---------------------------------------------------------------------------
 # ThinkingConstraint.normalize_mode
@@ -256,11 +255,11 @@ class TestModelCapabilitiesThinkingIntegration:
     """Tests for get_effective_thinking_params on ModelCapabilities."""
 
     def _make_caps(self, constraint=None, **kwargs):
-        defaults = dict(
-            provider=ProviderType.GOOGLE,
-            model_name="test-model",
-            friendly_name="Test",
-        )
+        defaults = {
+            "provider": ProviderType.GOOGLE,
+            "model_name": "test-model",
+            "friendly_name": "Test",
+        }
         defaults.update(kwargs)
         return ModelCapabilities(thinking_constraint=constraint, **defaults)
 

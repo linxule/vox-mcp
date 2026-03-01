@@ -2,7 +2,7 @@
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from .provider_type import ProviderType
 from .temperature import RangeTemperatureConstraint, TemperatureConstraint
@@ -54,7 +54,7 @@ class ModelCapabilities:
     supports_json_mode: bool = False
     supports_temperature: bool = True
     use_openai_response_api: bool = False
-    default_reasoning_effort: Optional[str] = None
+    default_reasoning_effort: str | None = None
     allow_code_generation: bool = (
         False  # Enables structured code generation in chat tool for substantial implementations
     )
@@ -64,9 +64,9 @@ class ModelCapabilities:
     temperature_constraint: TemperatureConstraint = field(
         default_factory=lambda: RangeTemperatureConstraint(0.0, 2.0, 0.3)
     )
-    thinking_constraint: Optional[ThinkingConstraint] = None
+    thinking_constraint: ThinkingConstraint | None = None
 
-    def get_effective_temperature(self, requested_temperature: float) -> Optional[float]:
+    def get_effective_temperature(self, requested_temperature: float) -> float | None:
         """Return the temperature that should be sent to the provider.
 
         Models without temperature support return ``None`` so that callers
@@ -79,9 +79,7 @@ class ModelCapabilities:
 
         return self.temperature_constraint.get_corrected_value(requested_temperature)
 
-    def get_effective_thinking_params(
-        self, thinking_mode: Optional[str] = None
-    ) -> Optional[dict[str, Any]]:
+    def get_effective_thinking_params(self, thinking_mode: str | None = None) -> dict[str, Any] | None:
         """Return provider-specific thinking parameters for the given mode.
 
         Returns ``None`` when thinking is not supported (no constraint

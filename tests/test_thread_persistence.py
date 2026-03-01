@@ -25,10 +25,10 @@ from utils.thread_persistence import (
     save_thread_header,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def tmp_threads_dir(tmp_path):

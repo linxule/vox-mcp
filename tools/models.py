@@ -1,7 +1,7 @@
 """Data models for tool responses and model-selection categories."""
 
 from enum import Enum
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -35,11 +35,9 @@ class ToolOutput(BaseModel):
         "code_too_large",
         "continuation_available",
     ] = "success"
-    content: Optional[str] = Field(None, description="The main content/response from the tool")
+    content: str | None = Field(None, description="The main content/response from the tool")
     content_type: Literal["text", "markdown", "json"] = "text"
-    metadata: Optional[dict[str, Any]] = Field(default_factory=dict)
-    continuation_offer: Optional[ContinuationOffer] = Field(
+    metadata: dict[str, Any] | None = Field(default_factory=dict)
+    continuation_offer: ContinuationOffer | None = Field(
         None, description="Optional offer for agent to continue conversation"
     )
-
-

@@ -5,13 +5,11 @@ This module contains unit tests to ensure that the Chat tool
 (now using SimpleTool architecture) maintains proper functionality.
 """
 
-import json
 from unittest.mock import patch
 
 import pytest
 
 from tools.chat import ChatRequest, ChatTool
-from tools.shared.exceptions import ToolExecutionError
 
 
 class TestChatTool:

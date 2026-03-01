@@ -11,7 +11,6 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 from utils.conversation_memory import ConversationTurn, ThreadContext
 
@@ -36,14 +35,14 @@ def _get_filename(thread_id: str, created_at: str) -> str:
     return f"{stamp}-{thread_id}.jsonl"
 
 
-def _parse_jsonl_file(filepath: Path) -> Optional[tuple[dict, list[ConversationTurn], Optional[str]]]:
+def _parse_jsonl_file(filepath: Path) -> tuple[dict, list[ConversationTurn], str | None] | None:
     """Parse a JSONL thread file into (header, turns, last_timestamp).
 
     Returns None if no valid header is found. Malformed lines are silently skipped.
     """
     header = None
     turns: list[ConversationTurn] = []
-    last_timestamp: Optional[str] = None
+    last_timestamp: str | None = None
 
     with open(filepath, encoding="utf-8") as f:
         for line in f:
@@ -78,7 +77,7 @@ def _parse_jsonl_file(filepath: Path) -> Optional[tuple[dict, list[ConversationT
     return header, turns, last_timestamp
 
 
-def _header_to_context(header: dict, turns: list[ConversationTurn], last_timestamp: Optional[str]) -> ThreadContext:
+def _header_to_context(header: dict, turns: list[ConversationTurn], last_timestamp: str | None) -> ThreadContext:
     """Build a ThreadContext from parsed JSONL header and turns."""
     return ThreadContext(
         thread_id=header["thread_id"],
@@ -175,7 +174,7 @@ def append_turn(thread_id: str, created_at: str, turn: ConversationTurn) -> None
         logger.warning(f"[PERSIST] Failed to append turn: {e}")
 
 
-def load_thread_from_disk(thread_id: str) -> Optional[ThreadContext]:
+def load_thread_from_disk(thread_id: str) -> ThreadContext | None:
     """Cold-reload a thread from its JSONL file by full UUID match."""
     try:
         threads_dir = _get_threads_dir()
@@ -202,7 +201,9 @@ def load_thread_from_disk(thread_id: str) -> Optional[ThreadContext]:
 
         # Validate thread_id matches to prevent returning wrong thread
         if header.get("thread_id") != thread_id:
-            logger.warning(f"[PERSIST] Thread ID mismatch in {filepath.name}: expected {thread_id[:8]}, got {header.get('thread_id', 'none')[:8]}")
+            logger.warning(
+                f"[PERSIST] Thread ID mismatch in {filepath.name}: expected {thread_id[:8]}, got {header.get('thread_id', 'none')[:8]}"
+            )
             return None
 
         context = _header_to_context(header, turns, last_timestamp)

@@ -317,7 +317,11 @@ class TestAutoModeProviderSelection:
             # Test that providers resolve aliases correctly
             test_cases = [
                 ("flash", ProviderType.GOOGLE, "gemini-2.5-flash"),
-                ("gemini-3.1", ProviderType.GOOGLE, "gemini-3.1-pro-preview"),  # "gemini-3.1" resolves to gemini-3.1-pro-preview
+                (
+                    "gemini-3.1",
+                    ProviderType.GOOGLE,
+                    "gemini-3.1-pro-preview",
+                ),  # "gemini-3.1" resolves to gemini-3.1-pro-preview
                 ("mini", ProviderType.OPENAI, "gpt-5-mini"),  # "mini" now resolves to gpt-5-mini
                 ("o3mini", ProviderType.OPENAI, "o3-mini"),
                 ("grok", ProviderType.XAI, "grok-4"),
@@ -331,9 +335,9 @@ class TestAutoModeProviderSelection:
 
                 # Test alias resolution
                 resolved_model_name = provider._resolve_model_name(alias)
-                assert (
-                    resolved_model_name == expected_resolved_name
-                ), f"Alias '{alias}' should resolve to '{expected_resolved_name}', got '{resolved_model_name}'"
+                assert resolved_model_name == expected_resolved_name, (
+                    f"Alias '{alias}' should resolve to '{expected_resolved_name}', got '{resolved_model_name}'"
+                )
 
         finally:
             # Restore original environment

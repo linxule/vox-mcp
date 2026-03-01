@@ -1,7 +1,6 @@
 """DeepSeek AI provider implementation for DeepSeek models."""
 
 import logging
-from typing import Optional
 
 from .openai_compatible import OpenAICompatibleProvider
 from .shared import ModelCapabilities, ModelResponse, ProviderType
@@ -78,9 +77,9 @@ class DeepSeekProvider(OpenAICompatibleProvider):
         self,
         prompt: str,
         model_name: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         temperature: float = 1.0,
-        max_output_tokens: Optional[int] = None,
+        max_output_tokens: int | None = None,
         **kwargs,
     ) -> ModelResponse:
         """Generate content using DeepSeek AI models.

@@ -12,9 +12,7 @@ conversation handling, file processing, and response formatting.
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Optional
-
-from mcp.types import TextContent
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from tools.models import ToolModelCategory
@@ -29,8 +27,6 @@ from utils.conversation_memory import (
 )
 from utils.env import get_env
 from utils.file_utils import read_file_content, read_files
-
-from tools.models import ToolOutput
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +152,7 @@ class BaseTool(ABC):
         """
         return ""
 
-    def get_annotations(self) -> Optional[dict[str, Any]]:
+    def get_annotations(self) -> dict[str, Any] | None:
         """
         Return optional annotations for this tool.
 
@@ -303,7 +299,7 @@ class BaseTool(ABC):
         return display
 
     @staticmethod
-    def _format_context_window(tokens: int) -> Optional[str]:
+    def _format_context_window(tokens: int) -> str | None:
         """Convert a raw context window into a short display string."""
 
         if not tokens or tokens <= 0:
@@ -421,7 +417,7 @@ class BaseTool(ABC):
 
         return summaries, len(filtered), bool(allowed_map)
 
-    def _get_restriction_note(self) -> Optional[str]:
+    def _get_restriction_note(self) -> str | None:
         """Return a string describing active per-provider allowlists, if any."""
 
         env_labels = {
@@ -670,7 +666,7 @@ class BaseTool(ABC):
 
     # === CONVERSATION AND FILE HANDLING METHODS ===
 
-    def get_conversation_embedded_files(self, continuation_id: Optional[str]) -> list[str]:
+    def get_conversation_embedded_files(self, continuation_id: str | None) -> list[str]:
         """
         Get list of files already embedded in conversation history.
 
@@ -698,7 +694,7 @@ class BaseTool(ABC):
         logger.debug(f"[FILES] {self.name}: Found {len(embedded_files)} embedded files")
         return embedded_files
 
-    def filter_new_files(self, requested_files: list[str], continuation_id: Optional[str]) -> list[str]:
+    def filter_new_files(self, requested_files: list[str], continuation_id: str | None) -> list[str]:
         """
         Filter out files that are already embedded in conversation history.
 
@@ -796,7 +792,7 @@ class BaseTool(ABC):
 
         return parts
 
-    def handle_prompt_file(self, files: Optional[list[str]]) -> tuple[Optional[str], Optional[list[str]]]:
+    def handle_prompt_file(self, files: list[str] | None) -> tuple[str | None, list[str] | None]:
         """
         Check for and handle prompt.txt in the absolute file paths list.
 
@@ -820,7 +816,6 @@ class BaseTool(ABC):
         updated_files = []
 
         for file_path in files:
-
             # Check if the filename is exactly "prompt.txt"
             # This ensures we don't match files like "myprompt.txt" or "prompt.txt.bak"
             if os.path.basename(file_path) == "prompt.txt":
@@ -875,7 +870,7 @@ class BaseTool(ABC):
         # Default implementation: validate the full user content
         return user_content
 
-    def check_prompt_size(self, text: str) -> Optional[dict[str, Any]]:
+    def check_prompt_size(self, text: str) -> dict[str, Any] | None:
         """
         Check if USER INPUT text is too large for MCP transport boundary.
 
@@ -908,13 +903,13 @@ class BaseTool(ABC):
     def _prepare_file_content_for_prompt(
         self,
         request_files: list[str],
-        continuation_id: Optional[str],
+        continuation_id: str | None,
         context_description: str = "New files",
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         reserve_tokens: int = 1_000,
-        remaining_budget: Optional[int] = None,
-        arguments: Optional[dict] = None,
-        model_context: Optional[Any] = None,
+        remaining_budget: int | None = None,
+        arguments: dict | None = None,
+        model_context: Any | None = None,
     ) -> tuple[str, list[str]]:
         """
         Centralized file processing implementing dual prioritization strategy.
@@ -1202,8 +1197,8 @@ class BaseTool(ABC):
             return temperature, [f"Temperature validation failed: {e}"]
 
     def _validate_image_limits(
-        self, images: Optional[list[str]], model_context: Optional[Any] = None, continuation_id: Optional[str] = None
-    ) -> Optional[dict]:
+        self, images: list[str] | None, model_context: Any | None = None, continuation_id: str | None = None
+    ) -> dict | None:
         """
         Validate image size and count against model capabilities.
 
@@ -1351,4 +1346,3 @@ class BaseTool(ABC):
         # All validations passed
         logger.debug(f"Image validation passed: {len(images)} images, {total_size_mb:.1f}MB total")
         return None
-

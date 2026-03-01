@@ -5,7 +5,7 @@ This module contains shared Pydantic models used across all tools,
 extracted to avoid circular imports and promote code reuse.
 """
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -34,15 +34,17 @@ class ToolRequest(BaseModel):
     """
 
     # Model configuration
-    model: Optional[str] = Field(None, description=COMMON_FIELD_DESCRIPTIONS["model"])
-    temperature: Optional[float] = Field(None, ge=0.0, le=1.0, description=COMMON_FIELD_DESCRIPTIONS["temperature"])
-    thinking_mode: Optional[Literal["minimal", "low", "medium", "high", "max"]] = Field(None, description=COMMON_FIELD_DESCRIPTIONS["thinking_mode"])
+    model: str | None = Field(None, description=COMMON_FIELD_DESCRIPTIONS["model"])
+    temperature: float | None = Field(None, ge=0.0, le=1.0, description=COMMON_FIELD_DESCRIPTIONS["temperature"])
+    thinking_mode: Literal["minimal", "low", "medium", "high", "max"] | None = Field(
+        None, description=COMMON_FIELD_DESCRIPTIONS["thinking_mode"]
+    )
 
     # Conversation support
-    continuation_id: Optional[str] = Field(None, description=COMMON_FIELD_DESCRIPTIONS["continuation_id"])
+    continuation_id: str | None = Field(None, description=COMMON_FIELD_DESCRIPTIONS["continuation_id"])
 
     # Visual context
-    images: Optional[list[str]] = Field(None, description=COMMON_FIELD_DESCRIPTIONS["images"])
+    images: list[str] | None = Field(None, description=COMMON_FIELD_DESCRIPTIONS["images"])
 
 
 # Tool-specific field descriptions are declared in each tool file
