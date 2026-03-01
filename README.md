@@ -182,3 +182,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for code style, project structure, and ho
 Apache 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 Derived from [pal-mcp-server](https://github.com/BeehiveInnovations/pal-mcp-server) by Beehive Innovations.
+
+<!-- mcp-name: io.github.linxule/vox-mcp -->

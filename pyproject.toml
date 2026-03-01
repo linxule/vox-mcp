@@ -5,7 +5,19 @@ description = "Multi-model AI gateway for MCP clients — routes prompts to Gemi
 requires-python = ">=3.10"
 license = "Apache-2.0"
 authors = [{ name = "Xule Lin" }]
-urls = { Homepage = "https://github.com/linxule/vox-mcp", Repository = "https://github.com/linxule/vox-mcp" }
+readme = "README.md"
+keywords = ["mcp", "ai", "gateway", "llm", "gemini", "openai", "anthropic", "deepseek", "moonshot", "openrouter"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+]
+urls = { Homepage = "https://github.com/linxule/vox-mcp", Repository = "https://github.com/linxule/vox-mcp", Changelog = "https://github.com/linxule/vox-mcp/blob/main/CHANGELOG.md", Issues = "https://github.com/linxule/vox-mcp/issues" }
 dependencies = [
     "mcp>=1.0.0",
     "google-genai>=1.19.0",

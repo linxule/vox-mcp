@@ -1,0 +1,71 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.linxule/vox-mcp",
+  "title": "Vox MCP",
+  "description": "Multi-model AI gateway — routes prompts from any MCP client to Gemini, GPT, Claude, Grok, DeepSeek, Kimi, OpenRouter, and local models with conversation memory. Pure API passthrough, no system prompt injection.",
+  "repository": {
+    "url": "https://github.com/linxule/vox-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "vox-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "GEMINI_API_KEY",
+          "description": "Google Gemini API key",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "description": "OpenAI API key",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "description": "Anthropic API key",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "XAI_API_KEY",
+          "description": "xAI (Grok) API key",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "DEEPSEEK_API_KEY",
+          "description": "DeepSeek API key",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "MOONSHOT_API_KEY",
+          "description": "Moonshot (Kimi) API key",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "OPENROUTER_API_KEY",
+          "description": "OpenRouter API key",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "CUSTOM_API_URL",
+          "description": "Custom OpenAI-compatible endpoint URL (Ollama, vLLM, etc.)",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
