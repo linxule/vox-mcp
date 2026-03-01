@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.linxule/vox-mcp",
   "title": "Vox MCP",
-  "description": "Multi-model AI gateway — routes prompts from any MCP client to Gemini, GPT, Claude, Grok, DeepSeek, Kimi, OpenRouter, and local models with conversation memory. Pure API passthrough, no system prompt injection.",
+  "description": "Multi-model AI gateway — 8 providers plus local models, no system prompt injection.",
   "repository": {
     "url": "https://github.com/linxule/vox-mcp",
     "source": "github"
