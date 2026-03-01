@@ -48,18 +48,6 @@ ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider
 ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
 ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
 
-# Register CUSTOM provider if CUSTOM_API_URL is available (for integration tests)
-# But only if we're actually running integration tests, not unit tests
-if os.getenv("CUSTOM_API_URL") and "test_prompt_regression.py" in os.getenv("PYTEST_CURRENT_TEST", ""):
-    from providers.custom import CustomProvider  # noqa: E402
-
-    def custom_provider_factory(api_key=None):
-        """Factory function that creates CustomProvider with proper parameters."""
-        base_url = os.getenv("CUSTOM_API_URL", "")
-        return CustomProvider(api_key=api_key or "", base_url=base_url)
-
-    ModelProviderRegistry.register_provider(ProviderType.CUSTOM, custom_provider_factory)
-
 
 @pytest.fixture
 def project_path(tmp_path):
@@ -124,21 +112,7 @@ def mock_provider_availability(request, monkeypatch):
     if ProviderType.XAI not in registry._providers:
         ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
 
-    # Ensure CUSTOM provider is registered if needed for integration tests
-    if (
-        os.getenv("CUSTOM_API_URL")
-        and "test_prompt_regression.py" in os.getenv("PYTEST_CURRENT_TEST", "")
-        and ProviderType.CUSTOM not in registry._providers
-    ):
-        from providers.custom import CustomProvider
-
-        def custom_provider_factory(api_key=None):
-            base_url = os.getenv("CUSTOM_API_URL", "")
-            return CustomProvider(api_key=api_key or "", base_url=base_url)
-
-        ModelProviderRegistry.register_provider(ProviderType.CUSTOM, custom_provider_factory)
-
-    # Also mock is_effective_auto_mode for all BaseTool instances to return False
+    # Mock is_effective_auto_mode for all BaseTool instances to return False
     # unless we're specifically testing auto mode behavior
     from tools.shared.base_tool import BaseTool
 
@@ -151,8 +125,6 @@ def mock_provider_availability(request, monkeypatch):
         if (
             "auto_mode" in test_file.lower()
             or "auto" in test_name.lower()
-            or "intelligent_fallback" in test_file.lower()
-            or "per_tool_model_defaults" in test_file.lower()
         ):
             # Call original method logic
             from config import DEFAULT_MODEL

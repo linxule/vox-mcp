@@ -5,8 +5,7 @@ This module implements the core MCP (Model Context Protocol) server that provide
 AI-powered tools for chat, model listing, and thread export.
 
 The server follows the MCP specification to expose callable tools for MCP clients
-(like Claude). Each tool provides specialized functionality for interactive
-engineering support and model/provider visibility.
+(like Claude). Each tool provides multi-model AI routing with conversation memory.
 
 Key Components:
 - MCP Server: Handles protocol communication and tool discovery
@@ -32,10 +31,6 @@ from mcp.server import Server  # noqa: E402
 from mcp.server.models import InitializationOptions  # noqa: E402
 from mcp.server.stdio import stdio_server  # noqa: E402
 from mcp.types import (  # noqa: E402
-    GetPromptResult,
-    Prompt,
-    PromptMessage,
-    PromptsCapability,
     ServerCapabilities,
     TextContent,
     Tool,
@@ -250,20 +245,6 @@ TOOLS = {
 }
 TOOLS = filter_disabled_tools(TOOLS)
 
-# Rich prompt templates for all tools
-PROMPT_TEMPLATES = {
-    "chat": {
-        "name": "chat",
-        "description": "Open the chat tool",
-        "template": "chat",
-    },
-    "listmodels": {
-        "name": "listmodels",
-        "description": "List available AI models",
-        "template": "listmodels",
-    },
-}
-
 
 def configure_providers():
     """
@@ -294,7 +275,6 @@ def configure_providers():
     from utils.model_restrictions import get_restriction_service
 
     valid_providers = []
-    has_native_apis = False
     has_openrouter = False
     has_custom = False
 
@@ -302,7 +282,7 @@ def configure_providers():
     gemini_key = get_env("GEMINI_API_KEY")
     if gemini_key and gemini_key != "your_gemini_api_key_here":
         valid_providers.append("Gemini")
-        has_native_apis = True
+
         logger.info("Gemini API key found - Gemini models available")
 
     # Check for OpenAI API key
@@ -310,7 +290,7 @@ def configure_providers():
     logger.debug(f"OpenAI key check: key={'[PRESENT]' if openai_key else '[MISSING]'}")
     if openai_key and openai_key != "your_openai_api_key_here":
         valid_providers.append("OpenAI")
-        has_native_apis = True
+
         logger.info("OpenAI API key found")
     else:
         if not openai_key:
@@ -322,7 +302,7 @@ def configure_providers():
     xai_key = get_env("XAI_API_KEY")
     if xai_key and xai_key != "your_xai_api_key_here":
         valid_providers.append("X.AI (GROK)")
-        has_native_apis = True
+
         logger.info("X.AI API key found - GROK models available")
 
     # Check for OpenRouter API key
@@ -355,42 +335,39 @@ def configure_providers():
         else:
             logger.debug("No custom API key provided (using unauthenticated access)")
 
-    # Register providers in priority order:
-    # 1. Native APIs first (most direct and efficient)
+    # Register providers — each registers independently based on its API key
     registered_providers = []
 
-    if has_native_apis:
-        if gemini_key and gemini_key != "your_gemini_api_key_here":
-            ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider)
-            registered_providers.append(ProviderType.GOOGLE.value)
-            logger.debug(f"Registered provider: {ProviderType.GOOGLE.value}")
-        if openai_key and openai_key != "your_openai_api_key_here":
-            ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
-            registered_providers.append(ProviderType.OPENAI.value)
-            logger.debug(f"Registered provider: {ProviderType.OPENAI.value}")
-        if xai_key and xai_key != "your_xai_api_key_here":
-            ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
-            registered_providers.append(ProviderType.XAI.value)
-            logger.debug(f"Registered provider: {ProviderType.XAI.value}")
+    if gemini_key and gemini_key != "your_gemini_api_key_here":
+        ModelProviderRegistry.register_provider(ProviderType.GOOGLE, GeminiModelProvider)
+        registered_providers.append(ProviderType.GOOGLE.value)
+        logger.debug(f"Registered provider: {ProviderType.GOOGLE.value}")
+    if openai_key and openai_key != "your_openai_api_key_here":
+        ModelProviderRegistry.register_provider(ProviderType.OPENAI, OpenAIModelProvider)
+        registered_providers.append(ProviderType.OPENAI.value)
+        logger.debug(f"Registered provider: {ProviderType.OPENAI.value}")
+    if xai_key and xai_key != "your_xai_api_key_here":
+        ModelProviderRegistry.register_provider(ProviderType.XAI, XAIModelProvider)
+        registered_providers.append(ProviderType.XAI.value)
+        logger.debug(f"Registered provider: {ProviderType.XAI.value}")
 
-        # Custom providers (Anthropic, Moonshot, DeepSeek)
-        anthropic_key = get_env("ANTHROPIC_API_KEY")
-        if anthropic_key and anthropic_key != "your_anthropic_api_key_here":
-            ModelProviderRegistry.register_provider(ProviderType.ANTHROPIC, AnthropicModelProvider)
-            registered_providers.append(ProviderType.ANTHROPIC.value)
-            logger.debug(f"Registered provider: {ProviderType.ANTHROPIC.value}")
+    anthropic_key = get_env("ANTHROPIC_API_KEY")
+    if anthropic_key and anthropic_key != "your_anthropic_api_key_here":
+        ModelProviderRegistry.register_provider(ProviderType.ANTHROPIC, AnthropicModelProvider)
+        registered_providers.append(ProviderType.ANTHROPIC.value)
+        logger.debug(f"Registered provider: {ProviderType.ANTHROPIC.value}")
 
-        moonshot_key = get_env("MOONSHOT_API_KEY")
-        if moonshot_key and moonshot_key != "your_moonshot_api_key_here":
-            ModelProviderRegistry.register_provider(ProviderType.MOONSHOT, MoonshotProvider)
-            registered_providers.append(ProviderType.MOONSHOT.value)
-            logger.debug(f"Registered provider: {ProviderType.MOONSHOT.value}")
+    moonshot_key = get_env("MOONSHOT_API_KEY")
+    if moonshot_key and moonshot_key != "your_moonshot_api_key_here":
+        ModelProviderRegistry.register_provider(ProviderType.MOONSHOT, MoonshotProvider)
+        registered_providers.append(ProviderType.MOONSHOT.value)
+        logger.debug(f"Registered provider: {ProviderType.MOONSHOT.value}")
 
-        deepseek_key = get_env("DEEPSEEK_API_KEY")
-        if deepseek_key and deepseek_key != "your_deepseek_api_key_here":
-            ModelProviderRegistry.register_provider(ProviderType.DEEPSEEK, DeepSeekProvider)
-            registered_providers.append(ProviderType.DEEPSEEK.value)
-            logger.debug(f"Registered provider: {ProviderType.DEEPSEEK.value}")
+    deepseek_key = get_env("DEEPSEEK_API_KEY")
+    if deepseek_key and deepseek_key != "your_deepseek_api_key_here":
+        ModelProviderRegistry.register_provider(ProviderType.DEEPSEEK, DeepSeekProvider)
+        registered_providers.append(ProviderType.DEEPSEEK.value)
+        logger.debug(f"Registered provider: {ProviderType.DEEPSEEK.value}")
 
     # 2. Custom provider second (for local/private models)
     if has_custom:
@@ -427,17 +404,8 @@ def configure_providers():
 
     logger.info(f"Available providers: {', '.join(valid_providers)}")
 
-    # Log provider priority
-    priority_info = []
-    if has_native_apis:
-        priority_info.append("Native APIs (Gemini, OpenAI)")
-    if has_custom:
-        priority_info.append("Custom endpoints")
-    if has_openrouter:
-        priority_info.append("OpenRouter (catch-all)")
-
-    if len(priority_info) > 1:
-        logger.info(f"Provider priority: {' → '.join(priority_info)}")
+    if len(registered_providers) > 1:
+        logger.info(f"Registered providers: {', '.join(registered_providers)}")
 
     # Register cleanup function for providers
     def cleanup_providers():
@@ -552,11 +520,6 @@ async def handle_list_tools() -> list[Tool]:
                 annotations=tool_annotations,
             )
         )
-
-    # Log cache efficiency info
-    openrouter_key_for_cache = get_env("OPENROUTER_API_KEY")
-    if openrouter_key_for_cache and openrouter_key_for_cache != "your_openrouter_api_key_here":
-        logger.debug("OpenRouter registry cache used efficiently across all tool schemas")
 
     logger.debug(f"Returning {len(tools)} tools to MCP client")
     return tools
@@ -1094,151 +1057,6 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
     return enhanced_arguments
 
 
-@server.list_prompts()
-async def handle_list_prompts() -> list[Prompt]:
-    """
-    List all available prompts for CLI Code shortcuts.
-
-    This handler returns prompts that enable shortcuts like /vox:chat.
-    We automatically generate prompts from all tools (1:1 mapping) plus add
-    a few marketing aliases with richer templates for commonly used tools.
-
-    Returns:
-        List of Prompt objects representing all available prompts
-    """
-    logger.debug("MCP client requested prompt list")
-    prompts = []
-
-    # Add a prompt for each tool with rich templates
-    for tool_name, tool in TOOLS.items():
-        if tool_name in PROMPT_TEMPLATES:
-            # Use the rich template
-            template_info = PROMPT_TEMPLATES[tool_name]
-            prompts.append(
-                Prompt(
-                    name=template_info["name"],
-                    description=template_info["description"],
-                    arguments=[],  # MVP: no structured args
-                )
-            )
-        else:
-            # Fallback for any tools without templates (shouldn't happen)
-            prompts.append(
-                Prompt(
-                    name=tool_name,
-                    description=f"Use {tool.name} tool",
-                    arguments=[],
-                )
-            )
-
-    # Add special "continue" prompt only if chat is available
-    if "chat" in TOOLS:
-        prompts.append(
-            Prompt(
-                name="continue",
-                description="Continue the previous conversation using the chat tool",
-                arguments=[],
-            )
-        )
-
-    logger.debug(f"Returning {len(prompts)} prompts to MCP client")
-    return prompts
-
-
-@server.get_prompt()
-async def handle_get_prompt(name: str, arguments: dict[str, Any] = None) -> GetPromptResult:
-    """
-    Get prompt details and generate the actual prompt text.
-
-    This handler is called when a user invokes a prompt (e.g., /vox:chat).
-    It generates the appropriate text that CLI will then use to call the
-    underlying tool.
-
-    Args:
-        name: The name of the prompt to execute
-        arguments: Optional arguments for the prompt (e.g., model, thinking_mode)
-
-    Returns:
-        GetPromptResult with the prompt details and generated message
-
-    Raises:
-        ValueError: If the prompt name is unknown
-    """
-    logger.debug(f"MCP client requested prompt: {name} with args: {arguments}")
-
-    # Handle special "continue" case
-    if name.lower() == "continue":
-        # This is "/vox:continue" - use chat tool as default for continuation
-        tool_name = "chat"
-        template_info = {
-            "name": "continue",
-            "description": "Continue the previous conversation",
-            "template": "Continue the conversation",
-        }
-        logger.debug("Using /vox:continue - defaulting to chat tool")
-    else:
-        # Find the corresponding tool by checking prompt names
-        tool_name = None
-        template_info = None
-
-        # Check if it's a known prompt name
-        for t_name, t_info in PROMPT_TEMPLATES.items():
-            if t_info["name"] == name:
-                tool_name = t_name
-                template_info = t_info
-                break
-
-        # If not found, check if it's a direct tool name
-        if not tool_name and name in TOOLS:
-            tool_name = name
-            template_info = {
-                "name": name,
-                "description": f"Use {name} tool",
-                "template": f"Use {name}",
-            }
-
-        if not tool_name:
-            logger.error(f"Unknown prompt requested: {name}")
-            raise ValueError(f"Unknown prompt: {name}")
-
-    # Get the template
-    template = template_info.get("template", f"Use {tool_name}")
-
-    # Safe template expansion with defaults
-    final_model = arguments.get("model", "auto") if arguments else "auto"
-
-    prompt_args = {
-        "model": final_model,
-        "thinking_mode": arguments.get("thinking_mode", "medium") if arguments else "medium",
-    }
-
-    logger.debug(f"Using model '{final_model}' for prompt '{name}'")
-
-    # Safely format the template
-    try:
-        prompt_text = template.format(**prompt_args)
-    except KeyError as e:
-        logger.warning(f"Missing template argument {e} for prompt {name}, using raw template")
-        prompt_text = template  # Fallback to raw template
-
-    # Generate tool call text
-    tool_instruction = prompt_text
-
-    return GetPromptResult(
-        prompt=Prompt(
-            name=name,
-            description=template_info["description"],
-            arguments=[],
-        ),
-        messages=[
-            PromptMessage(
-                role="user",
-                content={"type": "text", "text": tool_instruction},
-            )
-        ],
-    )
-
-
 async def main():
     """
     Main entry point for the MCP server.
@@ -1267,10 +1085,6 @@ async def main():
     logger.info(f"Available tools: {list(TOOLS.keys())}")
     logger.info("Server ready - waiting for tool requests...")
 
-    handshake_instructions = ""
-
-    # Run the server using stdio transport (standard input/output)
-    # This allows the server to be launched by MCP clients as a subprocess
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,
@@ -1278,10 +1092,8 @@ async def main():
             InitializationOptions(
                 server_name="vox",
                 server_version=__version__,
-                instructions=handshake_instructions,
                 capabilities=ServerCapabilities(
-                    tools=ToolsCapability(),  # Advertise tool support capability
-                    prompts=PromptsCapability(),  # Advertise prompt support capability
+                    tools=ToolsCapability(),
                 ),
             ),
         )

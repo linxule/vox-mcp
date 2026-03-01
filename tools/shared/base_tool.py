@@ -30,14 +30,7 @@ from utils.conversation_memory import (
 from utils.env import get_env
 from utils.file_utils import read_file_content, read_files
 
-# Import models from tools.models for compatibility
-try:
-    from tools.models import SPECIAL_STATUS_MODELS, ContinuationOffer, ToolOutput
-except ImportError:
-    # Fallback in case models haven't been set up yet
-    SPECIAL_STATUS_MODELS = {}
-    ContinuationOffer = None
-    ToolOutput = None
+from tools.models import ToolOutput
 
 logger = logging.getLogger(__name__)
 
@@ -612,43 +605,6 @@ class BaseTool(ABC):
             Type[ToolRequest]: The request model class
         """
         pass
-
-    def validate_file_paths(self, request) -> Optional[str]:
-        """
-        Validate that all file paths in the request are absolute.
-
-        This is a critical security function that prevents path traversal attacks
-        and ensures all file access is properly controlled. All file paths must
-        be absolute to avoid ambiguity and security issues.
-
-        Args:
-            request: The validated request object
-
-        Returns:
-            Optional[str]: Error message if validation fails, None if all paths are valid
-        """
-        # Only validate files/paths if they exist in the request
-        file_fields = [
-            "absolute_file_paths",
-            "file",
-            "path",
-            "directory",
-        ]
-
-        for field_name in file_fields:
-            if hasattr(request, field_name):
-                field_value = getattr(request, field_name)
-                if field_value is None:
-                    continue
-
-                # Handle both single paths and lists of paths
-                paths_to_check = field_value if isinstance(field_value, list) else [field_value]
-
-                for path in paths_to_check:
-                    if path and not os.path.isabs(path):
-                        return f"All file paths must be FULL absolute paths. Invalid path: '{path}'"
-
-        return None
 
     def _validate_token_limit(self, content: str, content_type: str = "Content") -> None:
         """
@@ -1396,7 +1352,3 @@ class BaseTool(ABC):
         logger.debug(f"Image validation passed: {len(images)} images, {total_size_mb:.1f}MB total")
         return None
 
-    def _parse_response(self, raw_text: str, request, model_info: Optional[dict] = None):
-        """Parse response - will be inherited for now."""
-        # Implementation inherited from current base.py
-        raise NotImplementedError("Subclasses must implement _parse_response method")

@@ -224,16 +224,3 @@ class TestModelEnumeration:
         assert "deepseek/deepseek-r1:free" in models, "Canonical free model name should be available"
         assert "deepseek-free" in models, "Free model alias should be included for MCP validation"
 
-
-# DELETED: test_auto_mode_behavior_with_environment_variables
-# This test was fundamentally broken due to registry corruption.
-# It cleared ModelProviderRegistry._instance without re-registering providers,
-# causing impossible test conditions (expecting models when no providers exist).
-# Functionality is already covered by test_auto_mode_comprehensive.py
-
-# DELETED: test_auto_mode_model_selection_validation
-# DELETED: test_environment_variable_precedence
-# Both tests suffered from the same registry corruption issue as the deleted test above.
-# They cleared ModelProviderRegistry._instance without re-registering providers,
-# causing empty model lists and impossible test conditions.
-# Auto mode functionality is already comprehensively tested in test_auto_mode_comprehensive.py

@@ -27,9 +27,6 @@ DANGEROUS_HOME_CONTAINERS = {
     "C:\\Users",
 }
 
-# Combined set for backward compatibility
-DANGEROUS_PATHS = DANGEROUS_SYSTEM_PATHS | DANGEROUS_HOME_CONTAINERS
-
 # Directories to exclude from recursive file search
 # These typically contain generated code, dependencies, or build artifacts
 EXCLUDED_DIRS = {

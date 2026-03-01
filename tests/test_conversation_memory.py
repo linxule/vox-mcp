@@ -1,7 +1,7 @@
 """
 Test suite for conversation memory system
 
-Tests the Redis-based conversation persistence needed for AI-to-AI multi-turn
+Tests the in-memory conversation persistence for multi-turn
 discussions in stateless MCP environments.
 """
 

@@ -76,14 +76,14 @@ class TestMCPDirectoryDetection:
         (project_root / "config.py").write_text("# Config")
 
         # Create a subdirectory that we'll mock as MCP
-        fake_mcp_dir = project_root / "gemini-mcp-server"
+        fake_mcp_dir = project_root / "vox-mcp"
         fake_mcp_dir.mkdir()
         (fake_mcp_dir / "server.py").write_text("# MCP server")
         (fake_mcp_dir / "test.py").write_text("# Should not be included")
 
         # Mock is_mcp_directory to return True for our fake MCP dir
         def mock_is_mcp(path):
-            return str(path).endswith("gemini-mcp-server")
+            return str(path).endswith("vox-mcp")
 
         # Scan the project with mocked MCP detection
         with mock_patch("utils.file_utils.is_mcp_directory", side_effect=mock_is_mcp):
@@ -260,7 +260,7 @@ class TestIntegrationScenarios:
         (src / "app.py").write_text("# App code")
 
         # MCP cloned inside the project
-        mcp = user_project / "tools" / "gemini-mcp-server"
+        mcp = user_project / "tools" / "vox-mcp"
         mcp.mkdir(parents=True)
         # Create typical MCP files
         (mcp / "server.py").write_text("# MCP server code")
@@ -278,7 +278,7 @@ class TestIntegrationScenarios:
 
         # Mock is_mcp_directory for this test
         def mock_is_mcp(path):
-            return "gemini-mcp-server" in str(path)
+            return "vox-mcp" in str(path)
 
         with patch("utils.file_utils.is_mcp_directory", side_effect=mock_is_mcp):
             files = expand_paths([str(user_project)])
@@ -291,7 +291,7 @@ class TestIntegrationScenarios:
         assert any("src/app.py" in p for p in file_paths)
 
         # MCP files should NOT be included
-        assert not any("gemini-mcp-server" in p for p in file_paths)
+        assert not any("vox-mcp" in p for p in file_paths)
         assert not any("server.py" in p for p in file_paths)
 
         # node_modules should NOT be included

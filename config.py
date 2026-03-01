@@ -22,7 +22,6 @@ except importlib.metadata.PackageNotFoundError:
 
 # Model configuration
 # DEFAULT_MODEL: The default model used for all AI operations
-# This should be a stable, high-performance model suitable for code analysis
 # Can be overridden by setting DEFAULT_MODEL environment variable
 # Special value "auto" means Claude should pick the best model for each task
 DEFAULT_MODEL = get_env("DEFAULT_MODEL", "auto") or "auto"
@@ -119,15 +118,6 @@ def _calculate_mcp_prompt_limit() -> int:
 
 
 MCP_PROMPT_SIZE_LIMIT = _calculate_mcp_prompt_limit()
-
-# Language/Locale Configuration
-# LOCALE: Language/locale specification for AI responses
-# When set, all AI tools will respond in the specified language while
-# maintaining their analytical capabilities
-# Examples: "fr-FR", "en-US", "zh-CN", "zh-TW", "ja-JP", "ko-KR", "es-ES",
-# "de-DE", "it-IT", "pt-PT"
-# Leave empty for default language (English)
-LOCALE = get_env("LOCALE", "") or ""
 
 # Thread persistence
 # Shadow persistence layer that writes every thread to disk as append-only JSONL.
