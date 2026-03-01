@@ -1,0 +1,64 @@
+{
+  "_README": {
+    "description": "Model metadata for X.AI (GROK) API access.",
+    "documentation": "https://github.com/linxule/vox-mcp",
+    "usage": "Models listed here are exposed directly through the X.AI provider. Aliases are case-insensitive.",
+    "field_notes": "Matches providers/shared/model_capabilities.py."
+  },
+  "models": [
+    {
+      "model_name": "grok-4",
+      "friendly_name": "X.AI (Grok 4)",
+      "aliases": [
+        "grok",
+        "grok-4",
+        "grok4"
+      ],
+      "intelligence_score": 17,
+      "description": "Grok 4 - X.AI's flagship model with extended thinking and vision",
+      "context_window": 256000,
+      "max_output_tokens": 131072,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "max_image_size_mb": 20.0
+    },
+    {
+      "model_name": "grok-3",
+      "friendly_name": "X.AI (Grok 3)",
+      "aliases": [
+        "grok3"
+      ],
+      "intelligence_score": 15,
+      "description": "Grok 3 - X.AI's high-capability reasoning model",
+      "context_window": 131072,
+      "max_output_tokens": 131072,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "grok-3-fast",
+      "friendly_name": "X.AI (Grok 3 Fast)",
+      "aliases": [
+        "grok3fast",
+        "grokfast"
+      ],
+      "intelligence_score": 13,
+      "description": "Grok 3 Fast - Optimized for speed",
+      "context_window": 131072,
+      "max_output_tokens": 131072,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_temperature": true
+    }
+  ]
+}

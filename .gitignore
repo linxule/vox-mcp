@@ -1,0 +1,49 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+
+# Testing
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.pytest_cache/
+test_output/
+*.test.log
+
+# Environments / secrets
+.env
+.env~
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Claude Code
+CLAUDE.local.md
+.claude/settings.local.json
+.mcp.json

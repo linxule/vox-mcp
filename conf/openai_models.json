@@ -1,0 +1,204 @@
+{
+  "_README": {
+    "description": "Model metadata for native OpenAI API access.",
+    "documentation": "https://github.com/linxule/vox-mcp",
+    "usage": "Models listed here are exposed directly through the OpenAI provider. Aliases are case-insensitive.",
+    "field_notes": "Matches providers/shared/model_capabilities.py."
+  },
+  "models": [
+    {
+      "model_name": "o3",
+      "friendly_name": "OpenAI (O3)",
+      "aliases": [],
+      "intelligence_score": 16,
+      "description": "OpenAI O3 - Advanced reasoning model with fixed temperature",
+      "context_window": 200000,
+      "max_output_tokens": 100000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed"
+    },
+    {
+      "model_name": "o3-mini",
+      "friendly_name": "OpenAI (O3-mini)",
+      "aliases": [
+        "o3mini"
+      ],
+      "intelligence_score": 14,
+      "description": "OpenAI O3-mini - Compact reasoning model with fixed temperature",
+      "context_window": 200000,
+      "max_output_tokens": 100000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed"
+    },
+    {
+      "model_name": "o3-pro",
+      "friendly_name": "OpenAI (O3-pro)",
+      "aliases": [
+        "o3pro"
+      ],
+      "intelligence_score": 17,
+      "description": "OpenAI O3-pro - Professional reasoning model (responses API)",
+      "context_window": 200000,
+      "max_output_tokens": 100000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": false,
+      "supports_function_calling": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed",
+      "use_openai_response_api": true
+    },
+    {
+      "model_name": "o4-mini",
+      "friendly_name": "OpenAI (O4-mini)",
+      "aliases": [
+        "o4mini"
+      ],
+      "intelligence_score": 15,
+      "description": "OpenAI O4-mini - Next-gen compact reasoning model with fixed temperature",
+      "context_window": 200000,
+      "max_output_tokens": 100000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed"
+    },
+    {
+      "model_name": "gpt-4.1",
+      "friendly_name": "OpenAI (GPT-4.1)",
+      "aliases": [
+        "gpt4.1"
+      ],
+      "intelligence_score": 14,
+      "description": "OpenAI GPT-4.1 - Enhanced GPT-4 with improved capabilities",
+      "context_window": 1048576,
+      "max_output_tokens": 32768,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "gpt-5",
+      "friendly_name": "OpenAI (GPT-5)",
+      "aliases": [
+        "gpt5"
+      ],
+      "intelligence_score": 18,
+      "description": "OpenAI GPT-5 - Next-generation model with extended thinking",
+      "context_window": 400000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "thinking_constraint": "effort_level",
+      "supports_system_prompts": true,
+      "supports_streaming": false,
+      "supports_function_calling": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "gpt-5-mini",
+      "friendly_name": "OpenAI (GPT-5-mini)",
+      "aliases": [
+        "mini",
+        "gpt5-mini",
+        "gpt5mini"
+      ],
+      "intelligence_score": 16,
+      "description": "OpenAI GPT-5-mini - Compact GPT-5 with extended thinking",
+      "context_window": 400000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "thinking_constraint": "effort_level",
+      "supports_system_prompts": true,
+      "supports_streaming": false,
+      "supports_function_calling": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "gpt-5-nano",
+      "friendly_name": "OpenAI (GPT-5-nano)",
+      "aliases": [
+        "nano",
+        "gpt5-nano",
+        "gpt5nano"
+      ],
+      "intelligence_score": 14,
+      "description": "OpenAI GPT-5-nano - Lightweight GPT-5 with extended thinking",
+      "context_window": 400000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "thinking_constraint": "effort_level",
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "gpt-5.1",
+      "friendly_name": "OpenAI (GPT-5.1)",
+      "aliases": [
+        "gpt5.1"
+      ],
+      "intelligence_score": 18,
+      "description": "OpenAI GPT-5.1 - Latest flagship with streaming and code generation",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_temperature": true,
+      "allow_code_generation": true
+    },
+    {
+      "model_name": "gpt-5.1-codex",
+      "friendly_name": "OpenAI (GPT-5.1-codex)",
+      "aliases": [
+        "gpt5.1-codex"
+      ],
+      "intelligence_score": 18,
+      "description": "OpenAI GPT-5.1 Codex - Code-focused model (responses API, non-streaming)",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": false,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_temperature": true,
+      "use_openai_response_api": true,
+      "allow_code_generation": true
+    },
+    {
+      "model_name": "gpt-5.1-codex-mini",
+      "friendly_name": "OpenAI (GPT-5.1-codex-mini)",
+      "aliases": [
+        "codex-mini"
+      ],
+      "intelligence_score": 16,
+      "description": "OpenAI GPT-5.1 Codex Mini - Compact code-focused model",
+      "context_window": 200000,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_temperature": true,
+      "allow_code_generation": true
+    }
+  ]
+}

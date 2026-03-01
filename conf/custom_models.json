@@ -1,0 +1,22 @@
+{
+  "_README": {
+    "description": "Model metadata for local/self-hosted OpenAI-compatible endpoints (Custom provider).",
+    "documentation": "https://github.com/linxule/vox-mcp",
+    "usage": "Each entry will be advertised by the Custom provider. Aliases are case-insensitive.",
+    "field_notes": "Matches providers/shared/model_capabilities.py."
+  },
+  "models": [
+    {
+      "model_name": "local-llama",
+      "friendly_name": "Custom (local-llama)",
+      "aliases": [],
+      "description": "Local LLaMA model via custom endpoint",
+      "context_window": 8192,
+      "max_output_tokens": 4096,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_temperature": true
+    }
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "_README": {
+    "description": "Model metadata for OpenRouter-backed providers.",
+    "documentation": "https://github.com/linxule/vox-mcp",
+    "usage": "Models listed here are exposed through OpenRouter. Aliases are case-insensitive.",
+    "field_notes": "Matches providers/shared/model_capabilities.py."
+  },
+  "models": [
+    {
+      "model_name": "anthropic/claude-opus-4.1",
+      "friendly_name": "OpenRouter (anthropic/claude-opus-4.1)",
+      "aliases": [
+        "opus"
+      ],
+      "intelligence_score": 18,
+      "description": "Claude Opus 4.1 via OpenRouter",
+      "context_window": 200000,
+      "max_output_tokens": 32000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true
+    },
+    {
+      "model_name": "anthropic/claude-sonnet-4.5",
+      "friendly_name": "OpenRouter (anthropic/claude-sonnet-4.5)",
+      "aliases": [
+        "sonnet",
+        "sonnet4.5"
+      ],
+      "intelligence_score": 17,
+      "description": "Claude Sonnet 4.5 via OpenRouter",
+      "context_window": 200000,
+      "max_output_tokens": 16000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true
+    },
+    {
+      "model_name": "anthropic/claude-sonnet-4.1",
+      "friendly_name": "OpenRouter (anthropic/claude-sonnet-4.1)",
+      "aliases": [
+        "sonnet4.1"
+      ],
+      "intelligence_score": 16,
+      "description": "Claude Sonnet 4.1 via OpenRouter",
+      "context_window": 200000,
+      "max_output_tokens": 16000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true
+    },
+    {
+      "model_name": "anthropic/claude-3.5-haiku",
+      "friendly_name": "OpenRouter (anthropic/claude-3.5-haiku)",
+      "aliases": [
+        "haiku"
+      ],
+      "intelligence_score": 12,
+      "description": "Claude 3.5 Haiku via OpenRouter",
+      "context_window": 200000,
+      "max_output_tokens": 8192,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true
+    },
+    {
+      "model_name": "openai/o3",
+      "friendly_name": "OpenRouter (openai/o3)",
+      "aliases": [
+        "o3"
+      ],
+      "intelligence_score": 16,
+      "description": "OpenAI O3 via OpenRouter",
+      "context_window": 200000,
+      "max_output_tokens": 100000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed"
+    },
+    {
+      "model_name": "openai/o3-mini",
+      "friendly_name": "OpenRouter (openai/o3-mini)",
+      "aliases": [
+        "o3-mini",
+        "o3mini"
+      ],
+      "intelligence_score": 14,
+      "description": "OpenAI O3-mini via OpenRouter",
+      "context_window": 200000,
+      "max_output_tokens": 100000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed"
+    },
+    {
+      "model_name": "openai/o4-mini",
+      "friendly_name": "OpenRouter (openai/o4-mini)",
+      "aliases": [
+        "o4-mini",
+        "o4mini"
+      ],
+      "intelligence_score": 15,
+      "description": "OpenAI O4-mini via OpenRouter",
+      "context_window": 200000,
+      "max_output_tokens": 100000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed"
+    },
+    {
+      "model_name": "openai/gpt-4.1",
+      "friendly_name": "OpenRouter (openai/gpt-4.1)",
+      "aliases": [
+        "gpt4.1"
+      ],
+      "intelligence_score": 14,
+      "description": "OpenAI GPT-4.1 via OpenRouter",
+      "context_window": 1048576,
+      "max_output_tokens": 32768,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "google/gemini-2.5-flash",
+      "friendly_name": "OpenRouter (google/gemini-2.5-flash)",
+      "aliases": [
+        "flash"
+      ],
+      "intelligence_score": 14,
+      "description": "Gemini 2.5 Flash via OpenRouter",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "google/gemini-2.5-pro",
+      "friendly_name": "OpenRouter (google/gemini-2.5-pro)",
+      "aliases": [
+        "pro"
+      ],
+      "intelligence_score": 18,
+      "description": "Gemini 2.5 Pro via OpenRouter",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "x-ai/grok-4",
+      "friendly_name": "OpenRouter (x-ai/grok-4)",
+      "aliases": [
+        "grok-4",
+        "grok4",
+        "grok"
+      ],
+      "intelligence_score": 17,
+      "description": "Grok 4 via OpenRouter",
+      "context_window": 256000,
+      "max_output_tokens": 131072,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "deepseek/deepseek-r1-0528",
+      "friendly_name": "OpenRouter (deepseek/deepseek-r1-0528)",
+      "aliases": [
+        "deepseek",
+        "r1"
+      ],
+      "intelligence_score": 16,
+      "description": "DeepSeek R1 via OpenRouter",
+      "context_window": 65536,
+      "max_output_tokens": 32768,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": false,
+      "supports_streaming": true,
+      "supports_function_calling": false,
+      "supports_temperature": false,
+      "temperature_constraint": "fixed"
+    },
+    {
+      "model_name": "mistralai/mistral-large-2411",
+      "friendly_name": "OpenRouter (mistralai/mistral-large-2411)",
+      "aliases": [
+        "mistral"
+      ],
+      "intelligence_score": 15,
+      "description": "Mistral Large via OpenRouter",
+      "context_window": 128000,
+      "max_output_tokens": 32768,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "openai/gpt-4o-2024-05-13",
+      "friendly_name": "GPT-4o (OG)",
+      "aliases": [
+        "gpt-4o",
+        "chatgpt",
+        "4o"
+      ],
+      "intelligence_score": 12,
+      "description": "GPT-4o OG (May 2024) - The original that changed everything, multimodal with vision, 4K output limit",
+      "context_window": 128000,
+      "max_output_tokens": 4096,
+      "supports_extended_thinking": false,
+      "supports_json_mode": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 20.0,
+      "supports_temperature": true
+    }
+  ]
+}
