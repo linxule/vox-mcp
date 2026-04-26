@@ -15,9 +15,9 @@ _TEMP_UNSUPPORTED_PATTERNS = {
     "o1",
     "o3",
     "o4",  # OpenAI O-series reasoning models
-    "deepseek-reasoner",
+    "deepseek-v4-pro",
     "deepseek-r1",
-    "r1",  # DeepSeek reasoner variants
+    "r1",  # DeepSeek reasoning variants (v4-pro thinking-on, plus R1 still routed via OpenRouter)
 }
 
 _TEMP_UNSUPPORTED_KEYWORDS = {

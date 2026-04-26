@@ -22,7 +22,7 @@ Example:
     OPENROUTER_ALLOWED_MODELS=opus,sonnet,mistral
     ANTHROPIC_ALLOWED_MODELS=opus,sonnet
     MOONSHOT_ALLOWED_MODELS=kimi-k2-thinking-turbo
-    DEEPSEEK_ALLOWED_MODELS=deepseek-reasoner
+    DEEPSEEK_ALLOWED_MODELS=deepseek-v4-pro
 """
 
 import logging

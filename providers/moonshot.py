@@ -4,7 +4,7 @@ import logging
 
 from .openai_compatible import OpenAICompatibleProvider
 from .shared import ModelCapabilities, ModelResponse, ProviderType
-from .shared.temperature import RangeTemperatureConstraint
+from .shared.temperature import FixedTemperatureConstraint, RangeTemperatureConstraint
 from .shared.thinking import AlwaysOnThinkingConstraint
 
 logger = logging.getLogger(__name__)
@@ -36,22 +36,22 @@ class MoonshotProvider(OpenAICompatibleProvider):
             intelligence_score=20,
             description="Kimi K2 Thinking Turbo (262K context) - Text-only model with always-on thinking",
         ),
-        "kimi-k2.5": ModelCapabilities(
+        "kimi-k2.6": ModelCapabilities(
             provider=ProviderType.MOONSHOT,
-            model_name="kimi-k2.5",
-            friendly_name="Kimi K2.5",
+            model_name="kimi-k2.6",
+            friendly_name="Kimi K2.6",
             context_window=262_144,
             max_output_tokens=65_536,
-            temperature_constraint=RangeTemperatureConstraint(0.0, 1.0, 1.0),
+            temperature_constraint=FixedTemperatureConstraint(1.0),
             supports_json_mode=True,
             supports_function_calling=True,
             supports_extended_thinking=True,
             thinking_constraint=AlwaysOnThinkingConstraint(),
             supports_images=True,
             max_image_size_mb=20.0,
-            aliases=["k2.5", "kimi-k25"],
+            aliases=["k2.6", "kimi-k26"],
             intelligence_score=20,
-            description="Kimi K2.5 (262K context) - Multimodal model with vision and always-on thinking",
+            description="Kimi K2.6 (256K context) - Multimodal model with vision and always-on thinking; thinking mode requires temperature=1.0",
         ),
     }
 
@@ -128,10 +128,13 @@ class MoonshotProvider(OpenAICompatibleProvider):
         if hasattr(capabilities, "temperature_constraint") and capabilities.temperature_constraint:
             temperature = capabilities.temperature_constraint.get_corrected_value(temperature)
 
-        # Moonshot API requires explicit extra_body to control thinking mode
-        # Thinking is on by default for K2.5 and K2 Thinking models
+        # Moonshot API requires explicit extra_body to control thinking mode.
+        # Merge into any caller-supplied extra_body so we don't silently drop
+        # the thinking toggle when callers pass other extra_body keys.
         if capabilities.supports_extended_thinking:
-            kwargs.setdefault("extra_body", {"thinking": {"type": "enabled"}})
+            extra_body = kwargs.setdefault("extra_body", {})
+            if isinstance(extra_body, dict):
+                extra_body.setdefault("thinking", {"type": "enabled"})
 
         # Call parent implementation with resolved model name
         return super().generate_content(

@@ -70,7 +70,12 @@ Temperature and thinking parameters use parallel constraint abstractions on `Mod
 
 ## Provider-Specific Notes
 
-### Moonshot (Kimi K2.5, K2 Thinking)
+### Moonshot (Kimi K2.6, K2 Thinking Turbo)
 - Thinking mode requires `extra_body={'thinking': {'type': 'enabled'}}`
 - Temperature must be 1.0 for thinking mode
 - API endpoint: `api.moonshot.cn/v1`
+
+### DeepSeek (V4 Pro)
+- Thinking mode requires `extra_body={'thinking': {'type': 'enabled'}}` (single endpoint with toggle, defaults on)
+- Temperature is ignored when thinking is enabled
+- API endpoint: `api.deepseek.com`

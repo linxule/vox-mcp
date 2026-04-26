@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 — Model swap: Kimi K2.6 + DeepSeek V4 Pro
+
+### Breaking
+
+- **Removed `kimi-k2.5`** (and its aliases `k2.5`, `kimi-k25`). Replaced by `kimi-k2.6` (256K context, 64K output, multimodal with vision, always-on thinking). Aliases: `k2.6`, `kimi-k26`. Thinking mode requires `temperature=1.0` (now enforced via `FixedTemperatureConstraint`).
+- **Removed `deepseek-reasoner`** (and its aliases `deepseek-r1`, `ds-reasoner`, `r1`). Replaced by `deepseek-v4-pro` (1M context, 384K output, always-on thinking). Aliases: `deepseek`, `deepseek-v4`, `v4`, `v4-pro`. Provider now injects `extra_body={"thinking": {"type": "enabled"}}` since V4 Pro is a single endpoint with a thinking toggle, unlike R1.
+
+### Notes
+
+- OpenRouter routing is unaffected; R1 references in `_TEMP_UNSUPPORTED_PATTERNS` retained for OpenRouter's `deepseek/deepseek-r1-*` models.
+
 ## 0.1.0 — Initial public release
 
 First public release of Vox MCP, extracted from a private development repository.

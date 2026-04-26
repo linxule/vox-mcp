@@ -321,7 +321,7 @@ class TestProviderConstraintWiring:
     def test_deepseek_has_always_on(self):
         from providers.deepseek import DeepSeekProvider
 
-        caps = DeepSeekProvider.MODEL_CAPABILITIES["deepseek-reasoner"]
+        caps = DeepSeekProvider.MODEL_CAPABILITIES["deepseek-v4-pro"]
         assert isinstance(caps.thinking_constraint, AlwaysOnThinkingConstraint)
 
     def test_moonshot_thinking_turbo_has_always_on(self):
@@ -330,8 +330,93 @@ class TestProviderConstraintWiring:
         caps = MoonshotProvider.MODEL_CAPABILITIES["kimi-k2-thinking-turbo"]
         assert isinstance(caps.thinking_constraint, AlwaysOnThinkingConstraint)
 
-    def test_moonshot_k25_has_always_on(self):
+    def test_moonshot_k26_has_always_on(self):
         from providers.moonshot import MoonshotProvider
 
-        caps = MoonshotProvider.MODEL_CAPABILITIES["kimi-k2.5"]
+        caps = MoonshotProvider.MODEL_CAPABILITIES["kimi-k2.6"]
         assert isinstance(caps.thinking_constraint, AlwaysOnThinkingConstraint)
+
+
+# ---------------------------------------------------------------------------
+# Thinking-mode extra_body merge — regression test for caller-supplied keys
+# ---------------------------------------------------------------------------
+
+
+class TestThinkingExtraBodyMerge:
+    """Providers must merge the thinking toggle into any caller-supplied
+    extra_body, not skip it via setdefault on the outer dict."""
+
+    def setup_method(self):
+        import utils.model_restrictions
+
+        utils.model_restrictions._restriction_service = None
+
+    def teardown_method(self):
+        import utils.model_restrictions
+
+        utils.model_restrictions._restriction_service = None
+
+    def test_moonshot_merges_thinking_into_caller_extra_body(self):
+        from unittest.mock import MagicMock, patch
+
+        from providers.moonshot import MoonshotProvider
+        from providers.openai_compatible import OpenAICompatibleProvider
+
+        provider = MoonshotProvider("test-key")
+        with patch.object(
+            OpenAICompatibleProvider, "generate_content", return_value=MagicMock()
+        ) as super_gen:
+            provider.generate_content(
+                prompt="hi",
+                model_name="kimi-k2.6",
+                temperature=1.0,
+                extra_body={"my_custom": "value"},
+            )
+        forwarded = super_gen.call_args.kwargs["extra_body"]
+        assert forwarded == {
+            "my_custom": "value",
+            "thinking": {"type": "enabled"},
+        }
+
+    def test_deepseek_merges_thinking_into_caller_extra_body(self):
+        from unittest.mock import MagicMock, patch
+
+        from providers.deepseek import DeepSeekProvider
+        from providers.openai_compatible import OpenAICompatibleProvider
+
+        provider = DeepSeekProvider("test-key")
+        with patch.object(
+            OpenAICompatibleProvider, "generate_content", return_value=MagicMock()
+        ) as super_gen:
+            provider.generate_content(
+                prompt="hi",
+                model_name="deepseek-v4-pro",
+                temperature=1.0,
+                extra_body={"my_custom": "value"},
+            )
+        forwarded = super_gen.call_args.kwargs["extra_body"]
+        assert forwarded == {
+            "my_custom": "value",
+            "thinking": {"type": "enabled"},
+        }
+
+    def test_caller_thinking_value_wins(self):
+        """If a caller explicitly disables thinking via extra_body, the
+        provider must respect that and not override with the always-on default."""
+        from unittest.mock import MagicMock, patch
+
+        from providers.deepseek import DeepSeekProvider
+        from providers.openai_compatible import OpenAICompatibleProvider
+
+        provider = DeepSeekProvider("test-key")
+        with patch.object(
+            OpenAICompatibleProvider, "generate_content", return_value=MagicMock()
+        ) as super_gen:
+            provider.generate_content(
+                prompt="hi",
+                model_name="deepseek-v4-pro",
+                temperature=1.0,
+                extra_body={"thinking": {"type": "disabled"}},
+            )
+        forwarded = super_gen.call_args.kwargs["extra_body"]
+        assert forwarded == {"thinking": {"type": "disabled"}}

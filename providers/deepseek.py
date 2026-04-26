@@ -13,27 +13,28 @@ logger = logging.getLogger(__name__)
 class DeepSeekProvider(OpenAICompatibleProvider):
     """DeepSeek AI provider for chat and reasoning models.
 
-    DeepSeek AI provides OpenAI-compatible APIs for their models,
-    including both standard chat models and advanced reasoning models (R1).
+    DeepSeek AI provides OpenAI-compatible APIs for their models.
+    The current default is V4 Pro, which exposes thinking mode via an
+    extra_body toggle on a single endpoint.
     """
 
     FRIENDLY_NAME = "DeepSeek"
 
     # Define DeepSeek models with their capabilities
     MODEL_CAPABILITIES = {
-        "deepseek-reasoner": ModelCapabilities(
+        "deepseek-v4-pro": ModelCapabilities(
             provider=ProviderType.DEEPSEEK,
-            model_name="deepseek-reasoner",
-            friendly_name="DeepSeek Reasoner (R1)",
-            context_window=128_000,
-            max_output_tokens=64_000,
+            model_name="deepseek-v4-pro",
+            friendly_name="DeepSeek V4 Pro",
+            context_window=1_000_000,
+            max_output_tokens=384_000,
             temperature_constraint=RangeTemperatureConstraint(0.0, 2.0, 1.0),
             supports_json_mode=True,
             supports_function_calling=True,
             supports_extended_thinking=True,
             thinking_constraint=AlwaysOnThinkingConstraint(),
-            aliases=["deepseek", "deepseek-r1", "ds-reasoner", "r1"],
-            description="DeepSeek Reasoner (R1) - Advanced reasoning model with chain-of-thought thinking (128K context, text-only)",
+            aliases=["deepseek", "deepseek-v4", "v4", "v4-pro"],
+            description="DeepSeek V4 Pro - Reasoning model with always-on thinking (1M context, 384K output, text-only)",
         ),
     }
 
@@ -109,6 +110,14 @@ class DeepSeekProvider(OpenAICompatibleProvider):
         if hasattr(capabilities, "temperature_constraint") and capabilities.temperature_constraint:
             temperature = capabilities.temperature_constraint.get_corrected_value(temperature)
 
+        # DeepSeek V4 Pro exposes thinking mode via extra_body on a single
+        # endpoint; force it on for thinking-capable models. Merge into any
+        # caller-supplied extra_body to avoid silently dropping the toggle.
+        if capabilities.supports_extended_thinking:
+            extra_body = kwargs.setdefault("extra_body", {})
+            if isinstance(extra_body, dict):
+                extra_body.setdefault("thinking", {"type": "enabled"})
+
         # Call parent implementation with resolved model name
         return super().generate_content(
             prompt=prompt,
@@ -122,7 +131,7 @@ class DeepSeekProvider(OpenAICompatibleProvider):
     def supports_thinking_mode(self, model_name: str) -> bool:
         """Check if the model supports extended thinking mode.
 
-        DeepSeek Reasoner (R1) model supports thinking capabilities.
+        DeepSeek V4 Pro supports thinking capabilities.
         """
         resolved_name = self._resolve_model_name(model_name)
         if resolved_name in self.MODEL_CAPABILITIES:

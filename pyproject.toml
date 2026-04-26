@@ -1,6 +1,6 @@
 [project]
 name = "vox-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Multi-model AI gateway for MCP clients — routes prompts to Gemini, OpenAI, Anthropic, xAI, DeepSeek, Moonshot, OpenRouter, and local models with conversation memory"
 requires-python = ">=3.10"
 license = "Apache-2.0"
