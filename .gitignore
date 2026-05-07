@@ -31,6 +31,7 @@ test_output/
 .env.*.local
 *.key
 *.pem
+.mcpregistry_*_token
 
 # IDE
 .idea/
