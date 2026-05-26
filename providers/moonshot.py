@@ -4,7 +4,7 @@ import logging
 
 from .openai_compatible import OpenAICompatibleProvider
 from .shared import ModelCapabilities, ModelResponse, ProviderType
-from .shared.temperature import FixedTemperatureConstraint, RangeTemperatureConstraint
+from .shared.temperature import FixedTemperatureConstraint
 from .shared.thinking import AlwaysOnThinkingConstraint
 
 logger = logging.getLogger(__name__)
@@ -21,21 +21,6 @@ class MoonshotProvider(OpenAICompatibleProvider):
 
     # Define Kimi models with their capabilities
     MODEL_CAPABILITIES = {
-        "kimi-k2-thinking-turbo": ModelCapabilities(
-            provider=ProviderType.MOONSHOT,
-            model_name="kimi-k2-thinking-turbo",
-            friendly_name="Kimi K2 Thinking Turbo",
-            context_window=262_144,
-            max_output_tokens=65_536,
-            temperature_constraint=RangeTemperatureConstraint(0.0, 1.0, 1.0),
-            supports_json_mode=True,
-            supports_function_calling=True,
-            supports_extended_thinking=True,
-            thinking_constraint=AlwaysOnThinkingConstraint(),
-            aliases=["kimi", "kimi-k2"],
-            intelligence_score=20,
-            description="Kimi K2 Thinking Turbo (262K context) - Text-only model with always-on thinking",
-        ),
         "kimi-k2.6": ModelCapabilities(
             provider=ProviderType.MOONSHOT,
             model_name="kimi-k2.6",
@@ -49,7 +34,7 @@ class MoonshotProvider(OpenAICompatibleProvider):
             thinking_constraint=AlwaysOnThinkingConstraint(),
             supports_images=True,
             max_image_size_mb=20.0,
-            aliases=["k2.6", "kimi-k26"],
+            aliases=["kimi", "kimi-k2", "k2.6", "kimi-k26"],
             intelligence_score=20,
             description="Kimi K2.6 (256K context) - Multimodal model with vision and always-on thinking; thinking mode requires temperature=1.0",
         ),
@@ -149,7 +134,7 @@ class MoonshotProvider(OpenAICompatibleProvider):
     def supports_thinking_mode(self, model_name: str) -> bool:
         """Check if the model supports extended thinking mode.
 
-        Returns True for models with extended thinking capabilities (e.g., kimi-k2-thinking-turbo).
+        Returns True for models with extended thinking capabilities (e.g., kimi-k2.6).
         """
         try:
             resolved_name = self._resolve_model_name(model_name)

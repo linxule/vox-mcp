@@ -324,12 +324,6 @@ class TestProviderConstraintWiring:
         caps = DeepSeekProvider.MODEL_CAPABILITIES["deepseek-v4-pro"]
         assert isinstance(caps.thinking_constraint, AlwaysOnThinkingConstraint)
 
-    def test_moonshot_thinking_turbo_has_always_on(self):
-        from providers.moonshot import MoonshotProvider
-
-        caps = MoonshotProvider.MODEL_CAPABILITIES["kimi-k2-thinking-turbo"]
-        assert isinstance(caps.thinking_constraint, AlwaysOnThinkingConstraint)
-
     def test_moonshot_k26_has_always_on(self):
         from providers.moonshot import MoonshotProvider
 

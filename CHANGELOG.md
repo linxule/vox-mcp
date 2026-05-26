@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 — Drop deprecated kimi-k2-thinking-turbo
+
+### Breaking
+
+- **Removed `kimi-k2-thinking-turbo`** (deprecated upstream by Moonshot). The aliases `kimi` and `kimi-k2` now resolve to `kimi-k2.6`, so callers using `model: kimi` continue to work but now hit the multimodal K2.6 endpoint (vision-capable, `temperature=1.0` enforced via `FixedTemperatureConstraint`). Callers that depended on the wider temperature range (`0.0–1.0`) on the old turbo model will have temperature clamped to `1.0`.
+
 ## 0.2.0 — Model swap: Kimi K2.6 + DeepSeek V4 Pro
 
 ### Breaking

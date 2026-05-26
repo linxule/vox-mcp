@@ -29,7 +29,7 @@ Send a prompt, optionally attach files or images, pick a model (or let the agent
 | Anthropic | `ANTHROPIC_API_KEY` | claude-4-opus, claude-4-sonnet |
 | xAI | `XAI_API_KEY` | grok-3, grok-3-fast |
 | DeepSeek | `DEEPSEEK_API_KEY` | deepseek-v4-pro |
-| Moonshot (Kimi) | `MOONSHOT_API_KEY` | kimi-k2-thinking-turbo, kimi-k2.6 |
+| Moonshot (Kimi) | `MOONSHOT_API_KEY` | kimi-k2.6 |
 | OpenRouter | `OPENROUTER_API_KEY` | Any OpenRouter model |
 | Custom | `CUSTOM_API_URL` | Ollama, vLLM, LM Studio, etc. |
 

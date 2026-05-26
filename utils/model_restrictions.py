@@ -21,7 +21,7 @@ Example:
     XAI_ALLOWED_MODELS=grok-3,grok-3-fast
     OPENROUTER_ALLOWED_MODELS=opus,sonnet,mistral
     ANTHROPIC_ALLOWED_MODELS=opus,sonnet
-    MOONSHOT_ALLOWED_MODELS=kimi-k2-thinking-turbo
+    MOONSHOT_ALLOWED_MODELS=kimi-k2.6
     DEEPSEEK_ALLOWED_MODELS=deepseek-v4-pro
 """
 
