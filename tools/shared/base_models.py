@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 # Shared field descriptions to avoid duplication
 COMMON_FIELD_DESCRIPTIONS = {
     "model": "Model name to use. Use `listmodels` for available options. The server validates model availability and returns errors for unknown models.",
-    "temperature": "0 = deterministic · 1 = creative.",
+    "temperature": "Optional sampling temperature. If omitted, the model's own default is used (recommended; some reasoning models reject or degrade on a fabricated value). Range is provider-dependent (commonly 0–2); values are clamped per model.",
     "thinking_mode": "Reasoning depth: minimal, low, medium, high, or max.",
     "continuation_id": (
         "Unique thread continuation ID for multi-turn conversations. Works across different tools. "
@@ -35,7 +35,7 @@ class ToolRequest(BaseModel):
 
     # Model configuration
     model: str | None = Field(None, description=COMMON_FIELD_DESCRIPTIONS["model"])
-    temperature: float | None = Field(None, ge=0.0, le=1.0, description=COMMON_FIELD_DESCRIPTIONS["temperature"])
+    temperature: float | None = Field(None, ge=0.0, le=2.0, description=COMMON_FIELD_DESCRIPTIONS["temperature"])
     thinking_mode: Literal["minimal", "low", "medium", "high", "max"] | None = Field(
         None, description=COMMON_FIELD_DESCRIPTIONS["thinking_mode"]
     )

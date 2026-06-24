@@ -2,6 +2,7 @@
 
 import base64
 import logging
+import threading
 from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
@@ -41,6 +42,14 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         self._ensure_registry()
         super().__init__(api_key, **kwargs)
         self._client = None
+        # Guards lazy client creation: the provider instance is cached and its
+        # generate_content runs in worker threads (asyncio.to_thread), so without
+        # this two threads could race and build duplicate clients/connection pools.
+        self._client_lock = threading.Lock()
+        # Set once if an Interactions API call fails, to skip it (and avoid
+        # repeated failed attempts) for the rest of this process; see
+        # generate_content's fallback to generateContent.
+        self._interactions_disabled = False
         self._token_counters = {}  # Cache for token counting
         self._base_url = kwargs.get("base_url", None)  # Optional custom endpoint
         self._timeout_override = self._resolve_http_timeout()
@@ -56,25 +65,30 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
 
     @property
     def client(self):
-        """Lazy initialization of Gemini client."""
+        """Lazy, thread-safe initialization of the Gemini client."""
         if self._client is None:
-            http_options_kwargs: dict[str, object] = {}
-            if self._base_url:
-                http_options_kwargs["base_url"] = self._base_url
-            if self._timeout_override is not None:
-                http_options_kwargs["timeout"] = self._timeout_override
-
-            if http_options_kwargs:
-                http_options = types.HttpOptions(**http_options_kwargs)
-                logger.debug(
-                    "Initializing Gemini client with options: base_url=%s timeout=%s",
-                    http_options_kwargs.get("base_url"),
-                    http_options_kwargs.get("timeout"),
-                )
-                self._client = genai.Client(api_key=self.api_key, http_options=http_options)
-            else:
-                self._client = genai.Client(api_key=self.api_key)
+            with self._client_lock:
+                if self._client is None:
+                    self._client = self._build_client()
         return self._client
+
+    def _build_client(self):
+        """Construct the genai.Client (called under _client_lock)."""
+        http_options_kwargs: dict[str, object] = {}
+        if self._base_url:
+            http_options_kwargs["base_url"] = self._base_url
+        if self._timeout_override is not None:
+            http_options_kwargs["timeout"] = self._timeout_override
+
+        if http_options_kwargs:
+            http_options = types.HttpOptions(**http_options_kwargs)
+            logger.debug(
+                "Initializing Gemini client with options: base_url=%s timeout=%s",
+                http_options_kwargs.get("base_url"),
+                http_options_kwargs.get("timeout"),
+            )
+            return genai.Client(api_key=self.api_key, http_options=http_options)
+        return genai.Client(api_key=self.api_key)
 
     def _resolve_http_timeout(self) -> float | None:
         """Compute timeout override from shared custom timeout environment variables."""
@@ -110,7 +124,7 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         prompt: str,
         model_name: str,
         system_prompt: str | None = None,
-        temperature: float = 1.0,
+        temperature: float | None = None,
         max_output_tokens: int | None = None,
         thinking_mode: str = "medium",
         images: list[str] | None = None,
@@ -132,11 +146,47 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         Returns:
             ModelResponse: Contains the generated content, token usage stats, model metadata, and safety information
         """
-        # Validate parameters and fetch capabilities
-        self.validate_parameters(model_name, temperature)
+        # Fetch capabilities; validate only an explicitly-supplied temperature.
         capabilities = self.get_capabilities(model_name)
+        if temperature is not None:
+            self.validate_parameters(model_name, temperature)
 
         resolved_model_name = self._resolve_model_name(model_name)
+
+        # Resolve the temperature once. None => omit it so Gemini applies its own
+        # default. Google strongly recommends keeping Gemini 3 at the default
+        # (1.0) and warns that lowering it can cause looping/degraded reasoning,
+        # so we never fabricate a value — an explicit caller value is clamped per
+        # the model's constraint.
+        effective_temperature = capabilities.get_effective_temperature(temperature)
+
+        # Prefer the Interactions API (Google's GA, recommended surface) when
+        # enabled, used statelessly (store=False) — vox keeps owning conversation
+        # memory. The surface is still evolving, so on any failure we fall back to
+        # the fully-supported generateContent path below and skip Interactions for
+        # the rest of this process to avoid repeated failed attempts. Image inputs
+        # always use generateContent (multimodal input is not wired on the
+        # Interactions adapter yet).
+        if self._use_interactions_api() and not self._interactions_disabled and not images:
+            try:
+                return self._generate_via_interactions(
+                    prompt=prompt,
+                    resolved_model_name=resolved_model_name,
+                    system_prompt=system_prompt,
+                    effective_temperature=effective_temperature,
+                    max_output_tokens=max_output_tokens,
+                    thinking_mode=thinking_mode,
+                    capabilities=capabilities,
+                )
+            except Exception as exc:
+                self._interactions_disabled = True
+                logger.warning(
+                    "Gemini Interactions API failed for %s (%s); falling back to "
+                    "generateContent for the rest of this session. Set "
+                    "VOX_GEMINI_USE_INTERACTIONS=false to skip Interactions entirely.",
+                    resolved_model_name,
+                    exc,
+                )
 
         # Prepare content parts (text and potentially images)
         parts = []
@@ -166,17 +216,11 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         # Create contents structure
         contents = [{"parts": parts}]
 
-        # Override temperature for Gemini 3+ models (Google warns <1.0 may cause issues,
-        # but 0.8 provides slightly more focused output for reasoning tasks)
-        effective_temperature = temperature
-        if resolved_model_name.startswith("gemini-3"):
-            effective_temperature = 0.8
-
-        # Prepare generation config
-        generation_config = types.GenerateContentConfig(
-            temperature=effective_temperature,
-            candidate_count=1,
-        )
+        # Prepare generation config. effective_temperature is resolved above the
+        # Interactions dispatch (None => omit so Gemini uses its own default).
+        generation_config = types.GenerateContentConfig(candidate_count=1)
+        if effective_temperature is not None:
+            generation_config.temperature = effective_temperature
 
         # Add max output tokens if specified
         if max_output_tokens:
@@ -307,6 +351,124 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
                 f"{'s' if attempts > 1 else ''}: {exc}"
             )
             raise RuntimeError(error_msg) from exc
+
+    # ------------------------------------------------------------------
+    # Interactions API (stateless) path
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _use_interactions_api() -> bool:
+        """Whether to route Gemini through the Interactions API (default on).
+
+        Set ``VOX_GEMINI_USE_INTERACTIONS=false`` to use the classic
+        generateContent endpoint directly.
+        """
+        return (get_env("VOX_GEMINI_USE_INTERACTIONS", "true") or "true").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+
+    @staticmethod
+    def _resolve_thinking_level(resolved_model_name: str, thinking_mode: str | None, capabilities) -> str | None:
+        """Map a thinking_mode to an Interactions ``thinking_level`` string, or None.
+
+        The Interactions API expresses thinking via an enum ``thinking_level`` for
+        ALL thinking-capable models (there is no token ``thinking_budget`` on this
+        surface), so this must run for Gemini 2.x as well as Gemini 3 — otherwise
+        2.x thinking is silently dropped. Allowed levels differ by tier (verified
+        against the live API): Gemini 2.x accepts only low/high; Gemini 3 accepts
+        low/medium/high (``minimal`` is Flash-only, so it is mapped to ``low`` to
+        stay valid across pro+flash). ``max`` collapses to ``high``. Returns None
+        for models without extended thinking (omit the field).
+        """
+        if not getattr(capabilities, "supports_extended_thinking", False):
+            return None
+        mode = (thinking_mode or "medium").lower()
+        if resolved_model_name.startswith("gemini-3"):
+            return {"minimal": "low", "low": "low", "medium": "medium", "high": "high", "max": "high"}.get(mode, "high")
+        # Gemini 2.x: only low/high are accepted on the Interactions API.
+        return "low" if mode in ("minimal", "low") else "high"
+
+    def _generate_via_interactions(
+        self,
+        *,
+        prompt: str,
+        resolved_model_name: str,
+        system_prompt: str | None,
+        effective_temperature: float | None,
+        max_output_tokens: int | None,
+        thinking_mode: str | None,
+        capabilities,
+    ) -> ModelResponse:
+        """Generate via the stateless (store=False) Interactions API.
+
+        vox keeps owning conversation memory, so we pass the full prompt as the
+        interaction ``input`` and never use ``previous_interaction_id``.
+        """
+        generation_config: dict[str, object] = {}
+        if effective_temperature is not None:
+            generation_config["temperature"] = effective_temperature
+        if max_output_tokens:
+            generation_config["max_output_tokens"] = max_output_tokens
+        thinking_level = self._resolve_thinking_level(resolved_model_name, thinking_mode, capabilities)
+        if thinking_level is not None:
+            generation_config["thinking_level"] = thinking_level
+
+        create_kwargs: dict[str, object] = {
+            "model": resolved_model_name,
+            "input": prompt,
+            "store": False,
+        }
+        if system_prompt:
+            create_kwargs["system_instruction"] = system_prompt
+        if generation_config:
+            create_kwargs["generation_config"] = generation_config
+
+        # Single attempt: the generateContent fallback in generate_content is the
+        # safety net (and has its own retry loop), so we don't retry here — a
+        # failure should fall back fast rather than sleep through retries.
+        interaction = self.client.interactions.create(**create_kwargs)
+        text = getattr(interaction, "output_text", None) or ""
+        usage = self._extract_interaction_usage(interaction)
+        status = getattr(interaction, "status", None)
+        try:
+            finish_reason_str = (
+                status.name if (status is not None and hasattr(status, "name")) else (str(status) if status else "STOP")
+            )
+        except Exception:
+            finish_reason_str = "STOP"
+        return ModelResponse(
+            content=text,
+            usage=usage,
+            model_name=resolved_model_name,
+            friendly_name="Gemini",
+            provider=ProviderType.GOOGLE,
+            metadata={
+                "thinking_mode": thinking_mode if capabilities.supports_extended_thinking else None,
+                "finish_reason": finish_reason_str,
+                "interaction_id": getattr(interaction, "id", None),
+                "api": "interactions",
+            },
+        )
+
+    @staticmethod
+    def _extract_interaction_usage(interaction) -> dict[str, int]:
+        """Extract token usage from an Interaction (total_input/output_tokens)."""
+        usage: dict[str, int] = {}
+        meta = getattr(interaction, "usage", None)
+        if not meta:
+            return usage
+        input_tokens = getattr(meta, "total_input_tokens", None)
+        output_tokens = getattr(meta, "total_output_tokens", None)
+        if input_tokens is not None:
+            usage["input_tokens"] = input_tokens
+        if output_tokens is not None:
+            usage["output_tokens"] = output_tokens
+        if input_tokens is not None and output_tokens is not None:
+            usage["total_tokens"] = input_tokens + output_tokens
+        return usage
 
     def get_provider_type(self) -> ProviderType:
         """Get the provider type."""

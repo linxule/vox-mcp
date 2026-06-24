@@ -66,13 +66,18 @@ class ModelCapabilities:
     )
     thinking_constraint: ThinkingConstraint | None = None
 
-    def get_effective_temperature(self, requested_temperature: float) -> float | None:
+    def get_effective_temperature(self, requested_temperature: float | None) -> float | None:
         """Return the temperature that should be sent to the provider.
 
-        Models without temperature support return ``None`` so that callers
-        can omit the parameter entirely.  For supported models, the configured
-        constraint clamps the requested value into a provider-safe range.
+        Returns ``None`` (omit the parameter, let the provider apply its own
+        server-side default) when the caller did not request a temperature
+        (``requested_temperature is None``) or when the model does not support
+        temperature at all.  For supported models with an explicit request, the
+        configured constraint clamps the value into a provider-safe range.
         """
+
+        if requested_temperature is None:
+            return None
 
         if not self.supports_temperature:
             return None

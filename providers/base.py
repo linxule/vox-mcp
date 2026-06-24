@@ -150,7 +150,7 @@ class ModelProvider(ABC):
         prompt: str,
         model_name: str,
         system_prompt: str | None = None,
-        temperature: float = 0.3,
+        temperature: float | None = None,
         max_output_tokens: int | None = None,
         **kwargs,
     ) -> ModelResponse:
@@ -165,8 +165,9 @@ class ModelProvider(ABC):
             model_name: Canonical model name or its alias that the provider supports
             system_prompt: Optional system instructions to prepend to the prompt for
                           establishing context, behavior, or role
-            temperature: Controls randomness in generation (0.0=deterministic, 1.0=creative),
-                        default 0.3. Some models may not support temperature control
+            temperature: Controls randomness in generation. ``None`` (the default)
+                        omits the parameter so the model applies its own default.
+                        Some models do not support temperature control.
             max_output_tokens: Optional maximum number of tokens to generate in the response.
                               If not specified, uses the model's default limit
             **kwargs: Additional provider-specific parameters that vary by implementation

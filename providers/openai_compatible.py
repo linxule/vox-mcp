@@ -3,6 +3,7 @@
 import copy
 import ipaddress
 import logging
+import threading
 from urllib.parse import urlparse
 
 from openai import OpenAI
@@ -41,6 +42,10 @@ class OpenAICompatibleProvider(ModelProvider):
         self._allowed_alias_cache: dict[str, str] = {}
         super().__init__(api_key, **kwargs)
         self._client = None
+        # Guards lazy client creation: provider instances are cached and their
+        # generate_content runs in worker threads (asyncio.to_thread), so two
+        # threads must not race and build duplicate clients/connection pools.
+        self._client_lock = threading.Lock()
         self.base_url = base_url
         self.organization = kwargs.get("organization")
         self.allowed_models = self._parse_allowed_models()
@@ -254,78 +259,86 @@ class OpenAICompatibleProvider(ModelProvider):
 
     @property
     def client(self):
-        """Lazy initialization of OpenAI client with security checks and timeout configuration."""
+        """Lazy, thread-safe initialization of the OpenAI client."""
         if self._client is None:
-            import httpx
-
-            proxy_env_vars = ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"]
-
-            with suppress_env_vars(*proxy_env_vars):
-                try:
-                    # Create a custom httpx client that explicitly avoids proxy parameters
-                    timeout_config = (
-                        self.timeout_config
-                        if hasattr(self, "timeout_config") and self.timeout_config
-                        else httpx.Timeout(30.0)
-                    )
-
-                    # Create httpx client with minimal config to avoid proxy conflicts
-                    # Note: proxies parameter was removed in httpx 0.28.0
-                    # Check for test transport injection
-                    if hasattr(self, "_test_transport"):
-                        # Use custom transport for testing (HTTP recording/replay)
-                        http_client = httpx.Client(
-                            transport=self._test_transport,
-                            timeout=timeout_config,
-                            follow_redirects=True,
-                        )
-                    else:
-                        # Normal production client
-                        http_client = httpx.Client(
-                            timeout=timeout_config,
-                            follow_redirects=True,
-                        )
-
-                    # Keep client initialization minimal to avoid proxy parameter conflicts
-                    client_kwargs = {
-                        "api_key": self.api_key,
-                        "http_client": http_client,
-                    }
-
-                    if self.base_url:
-                        client_kwargs["base_url"] = self.base_url
-
-                    if self.organization:
-                        client_kwargs["organization"] = self.organization
-
-                    # Add default headers if any
-                    if self.DEFAULT_HEADERS:
-                        client_kwargs["default_headers"] = self.DEFAULT_HEADERS.copy()
-
-                    logging.debug(
-                        "OpenAI client initialized with custom httpx client and timeout: %s",
-                        timeout_config,
-                    )
-
-                    # Create OpenAI client with custom httpx client
-                    self._client = OpenAI(**client_kwargs)
-
-                except Exception as e:
-                    # If all else fails, try absolute minimal client without custom httpx
-                    logging.warning(
-                        "Failed to create client with custom httpx, falling back to minimal config: %s",
-                        e,
-                    )
-                    try:
-                        minimal_kwargs = {"api_key": self.api_key}
-                        if self.base_url:
-                            minimal_kwargs["base_url"] = self.base_url
-                        self._client = OpenAI(**minimal_kwargs)
-                    except Exception as fallback_error:
-                        logging.error("Even minimal OpenAI client creation failed: %s", fallback_error)
-                        raise
-
+            with self._client_lock:
+                if self._client is None:
+                    self._client = self._build_client()
         return self._client
+
+    def _build_client(self):
+        """Construct the OpenAI client with security checks and timeout config.
+
+        Called under ``_client_lock``.
+        """
+        import httpx
+
+        proxy_env_vars = ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"]
+
+        with suppress_env_vars(*proxy_env_vars):
+            try:
+                # Create a custom httpx client that explicitly avoids proxy parameters
+                timeout_config = (
+                    self.timeout_config
+                    if hasattr(self, "timeout_config") and self.timeout_config
+                    else httpx.Timeout(30.0)
+                )
+
+                # Create httpx client with minimal config to avoid proxy conflicts
+                # Note: proxies parameter was removed in httpx 0.28.0
+                # Check for test transport injection
+                if hasattr(self, "_test_transport"):
+                    # Use custom transport for testing (HTTP recording/replay)
+                    http_client = httpx.Client(
+                        transport=self._test_transport,
+                        timeout=timeout_config,
+                        follow_redirects=True,
+                    )
+                else:
+                    # Normal production client
+                    http_client = httpx.Client(
+                        timeout=timeout_config,
+                        follow_redirects=True,
+                    )
+
+                # Keep client initialization minimal to avoid proxy parameter conflicts
+                client_kwargs = {
+                    "api_key": self.api_key,
+                    "http_client": http_client,
+                }
+
+                if self.base_url:
+                    client_kwargs["base_url"] = self.base_url
+
+                if self.organization:
+                    client_kwargs["organization"] = self.organization
+
+                # Add default headers if any
+                if self.DEFAULT_HEADERS:
+                    client_kwargs["default_headers"] = self.DEFAULT_HEADERS.copy()
+
+                logging.debug(
+                    "OpenAI client initialized with custom httpx client and timeout: %s",
+                    timeout_config,
+                )
+
+                # Create OpenAI client with custom httpx client
+                return OpenAI(**client_kwargs)
+
+            except Exception as e:
+                # If all else fails, try absolute minimal client without custom httpx
+                logging.warning(
+                    "Failed to create client with custom httpx, falling back to minimal config: %s",
+                    e,
+                )
+                try:
+                    minimal_kwargs = {"api_key": self.api_key}
+                    if self.base_url:
+                        minimal_kwargs["base_url"] = self.base_url
+                    return OpenAI(**minimal_kwargs)
+                except Exception as fallback_error:
+                    logging.error("Even minimal OpenAI client creation failed: %s", fallback_error)
+                    raise
 
     def _sanitize_for_logging(self, params: dict) -> dict:
         """Sanitize sensitive data from parameters before logging.
@@ -388,12 +401,16 @@ class OpenAICompatibleProvider(ModelProvider):
         self,
         model_name: str,
         messages: list,
-        temperature: float,
+        temperature: float | None = None,
         max_output_tokens: int | None = None,
         capabilities: ModelCapabilities | None = None,
         **kwargs,
     ) -> ModelResponse:
-        """Generate content using the /v1/responses endpoint for reasoning models."""
+        """Generate content using the /v1/responses endpoint for reasoning models.
+
+        Note: the responses endpoint does not accept a temperature parameter, so
+        ``temperature`` is intentionally unused here.
+        """
         # Convert messages to the correct format for responses endpoint
         input_messages = []
 
@@ -501,7 +518,7 @@ class OpenAICompatibleProvider(ModelProvider):
         prompt: str,
         model_name: str,
         system_prompt: str | None = None,
-        temperature: float = 0.3,
+        temperature: float | None = None,
         max_output_tokens: int | None = None,
         images: list[str] | None = None,
         **kwargs,
@@ -512,7 +529,8 @@ class OpenAICompatibleProvider(ModelProvider):
             prompt: User prompt to send to the model
             model_name: Canonical model name or its alias
             system_prompt: Optional system prompt for model behavior
-            temperature: Sampling temperature
+            temperature: Sampling temperature, or ``None`` to omit it and let
+                the provider apply its own default
             max_output_tokens: Maximum tokens to generate
             images: Optional list of image paths or data URLs to include with the prompt (for vision models)
             **kwargs: Additional provider-specific parameters
@@ -531,8 +549,17 @@ class OpenAICompatibleProvider(ModelProvider):
             logging.debug(f"Falling back to generic capabilities for {model_name}: {exc}")
             capabilities = None
 
-        # Get effective temperature for this model from capabilities when available
-        if capabilities:
+        # Whether the model accepts sampling parameters at all. Reasoning models
+        # (o3/o4 and equivalents) reject temperature, top_p, penalties AND
+        # max_tokens on chat/completions — that gate is keyed on this flag.
+        model_supports_sampling = bool(capabilities.supports_temperature) if capabilities else True
+
+        # Resolve the temperature to actually send. ``None`` means omit it (the
+        # caller did not specify one, or the model does not accept it) so the
+        # provider applies its own server-side default — a pure passthrough.
+        if temperature is None or not model_supports_sampling:
+            effective_temperature = None
+        elif capabilities:
             effective_temperature = capabilities.get_effective_temperature(temperature)
             if effective_temperature is not None and effective_temperature != temperature:
                 logging.debug(
@@ -541,9 +568,8 @@ class OpenAICompatibleProvider(ModelProvider):
         else:
             effective_temperature = temperature
 
-        # Only validate if temperature is not None (meaning the model supports it)
+        # Only validate an explicitly-resolved temperature.
         if effective_temperature is not None:
-            # Validate parameters with the effective temperature
             self.validate_parameters(model_name, effective_temperature)
 
         # Resolve to canonical model name
@@ -589,15 +615,15 @@ class OpenAICompatibleProvider(ModelProvider):
             "stream": False,
         }
 
-        # Use the effective temperature we calculated earlier
-        supports_sampling = effective_temperature is not None
-
-        if supports_sampling:
+        # Send temperature only when explicitly resolved (omit otherwise so the
+        # provider uses its own default).
+        if effective_temperature is not None:
             completion_params["temperature"] = effective_temperature
 
-        # Add max tokens if specified and model supports it
-        # O3/O4 models that don't support temperature also don't support max_tokens
-        if max_output_tokens and supports_sampling:
+        # Add max tokens if specified and the model supports sampling params.
+        # O3/O4 reasoning models that don't support temperature also don't
+        # support max_tokens on chat/completions.
+        if max_output_tokens and model_supports_sampling:
             completion_params["max_tokens"] = max_output_tokens
 
         # Extract thinking_mode before processing remaining kwargs
@@ -610,8 +636,8 @@ class OpenAICompatibleProvider(ModelProvider):
         # Use capabilities to filter parameters for reasoning models
         for key, value in kwargs.items():
             if key in ["top_p", "frequency_penalty", "presence_penalty", "seed", "stop", "stream"]:
-                # Reasoning models (those that don't support temperature) also don't support these parameters
-                if not supports_sampling and key in ["top_p", "frequency_penalty", "presence_penalty", "stream"]:
+                # Reasoning models (those that don't support sampling) also don't support these parameters
+                if not model_supports_sampling and key in ["top_p", "frequency_penalty", "presence_penalty", "stream"]:
                     continue  # Skip unsupported parameters for reasoning models
                 completion_params[key] = value
 

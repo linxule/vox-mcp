@@ -96,7 +96,7 @@ class AnthropicModelProvider(ModelProvider):
         prompt: str,
         model_name: str,
         system_prompt: str | None = None,
-        temperature: float = 0.8,
+        temperature: float | None = None,
         max_output_tokens: int | None = None,
         **kwargs,
     ) -> ModelResponse:
@@ -106,7 +106,7 @@ class AnthropicModelProvider(ModelProvider):
             prompt: User prompt to send to the model
             model_name: Model name or alias
             system_prompt: Optional system prompt
-            temperature: Sampling temperature (0.0-1.0)
+            temperature: Sampling temperature, or ``None`` to omit it
             max_output_tokens: Maximum tokens to generate
             **kwargs: Additional parameters (thinking_mode, images, etc.)
 
@@ -132,9 +132,12 @@ class AnthropicModelProvider(ModelProvider):
             if system_prompt:
                 request_params["system"] = system_prompt
 
-            # Add temperature if supported
-            if capabilities.supports_temperature:
-                # Apply temperature constraints
+            # Add temperature only when the caller explicitly supplied one and the
+            # model supports it. Omitting it lets the API use its own default —
+            # required for Opus 4.7+/Fable 5, which reject any non-default
+            # temperature/top_p/top_k with a 400.
+            if capabilities.supports_temperature and temperature is not None:
+                # Apply temperature constraints to the explicit value
                 if hasattr(capabilities, "temperature_constraint") and capabilities.temperature_constraint:
                     temperature = capabilities.temperature_constraint.get_corrected_value(temperature)
                 request_params["temperature"] = temperature

@@ -106,7 +106,7 @@ class ChatTool(SimpleTool):
                     "type": "number",
                     "description": COMMON_FIELD_DESCRIPTIONS["temperature"],
                     "minimum": 0,
-                    "maximum": 1,
+                    "maximum": 2,
                 },
                 "thinking_mode": {
                     "type": "string",

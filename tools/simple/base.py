@@ -12,6 +12,7 @@ and inherit all the conversation, file processing, and model handling
 capabilities from BaseTool.
 """
 
+import asyncio
 from abc import abstractmethod
 from typing import Any
 
@@ -203,23 +204,27 @@ class SimpleTool(BaseTool):
         except AttributeError:
             return None
 
-    def get_validated_temperature(self, request, model_context: Any) -> tuple[float, list[str]]:
+    def get_validated_temperature(self, request, model_context: Any) -> tuple[float | None, list[str]]:
         """
         Get temperature from request and validate it against model constraints.
 
-        This is a convenience method that combines temperature extraction and validation
-        for simple tools. It ensures temperature is within valid range for the model.
+        Pure passthrough: when the caller does not specify a temperature, return
+        ``None`` so the provider omits the parameter and the model applies its own
+        server-side default. vox no longer fabricates a default temperature —
+        several providers (Gemini 3, OpenAI reasoning models, Anthropic Opus 4.7+)
+        degrade or reject a fabricated non-default value. Only an explicitly
+        supplied temperature is validated/clamped against the model's constraint.
 
         Args:
             request: The request object containing temperature
             model_context: Model context object containing model info
 
         Returns:
-            Tuple of (validated_temperature, warning_messages)
+            Tuple of (validated_temperature_or_None, warning_messages)
         """
         temperature = self.get_request_temperature(request)
         if temperature is None:
-            temperature = self.get_default_temperature()
+            return None, []
         return self.validate_and_correct_temperature(temperature, model_context)
 
     def get_request_thinking_mode(self, request) -> str | None:
@@ -428,8 +433,17 @@ class SimpleTool(BaseTool):
             # Resolve model capabilities for feature gating
             supports_thinking = capabilities.supports_extended_thinking
 
-            # Generate content with provider abstraction
-            model_response = provider.generate_content(
+            # Generate content with provider abstraction.
+            # Provider SDK calls are synchronous and blocking (httpx under the hood).
+            # The MCP low-level server dispatches each tool call concurrently
+            # (anyio task group / start_soon), so running a multi-second provider
+            # call inline would freeze the single event loop — including the stdio
+            # read/write streams — and cause concurrent calls to stall and the
+            # client to drop the connection. Offload to a worker thread so the loop
+            # stays responsive. The provider's cached client (httpx pool) is
+            # thread-safe for concurrent requests.
+            model_response = await asyncio.to_thread(
+                provider.generate_content,
                 prompt=prompt,
                 model_name=self._current_model_name,
                 system_prompt=system_prompt,

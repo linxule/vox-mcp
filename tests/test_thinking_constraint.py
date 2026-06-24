@@ -357,9 +357,7 @@ class TestThinkingExtraBodyMerge:
         from providers.openai_compatible import OpenAICompatibleProvider
 
         provider = MoonshotProvider("test-key")
-        with patch.object(
-            OpenAICompatibleProvider, "generate_content", return_value=MagicMock()
-        ) as super_gen:
+        with patch.object(OpenAICompatibleProvider, "generate_content", return_value=MagicMock()) as super_gen:
             provider.generate_content(
                 prompt="hi",
                 model_name="kimi-k2.6",
@@ -379,9 +377,7 @@ class TestThinkingExtraBodyMerge:
         from providers.openai_compatible import OpenAICompatibleProvider
 
         provider = DeepSeekProvider("test-key")
-        with patch.object(
-            OpenAICompatibleProvider, "generate_content", return_value=MagicMock()
-        ) as super_gen:
+        with patch.object(OpenAICompatibleProvider, "generate_content", return_value=MagicMock()) as super_gen:
             provider.generate_content(
                 prompt="hi",
                 model_name="deepseek-v4-pro",
@@ -403,9 +399,7 @@ class TestThinkingExtraBodyMerge:
         from providers.openai_compatible import OpenAICompatibleProvider
 
         provider = DeepSeekProvider("test-key")
-        with patch.object(
-            OpenAICompatibleProvider, "generate_content", return_value=MagicMock()
-        ) as super_gen:
+        with patch.object(OpenAICompatibleProvider, "generate_content", return_value=MagicMock()) as super_gen:
             provider.generate_content(
                 prompt="hi",
                 model_name="deepseek-v4-pro",

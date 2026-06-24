@@ -79,7 +79,7 @@ class DeepSeekProvider(OpenAICompatibleProvider):
         prompt: str,
         model_name: str,
         system_prompt: str | None = None,
-        temperature: float = 1.0,
+        temperature: float | None = None,
         max_output_tokens: int | None = None,
         **kwargs,
     ) -> ModelResponse:
@@ -89,7 +89,7 @@ class DeepSeekProvider(OpenAICompatibleProvider):
             prompt: User prompt
             model_name: DeepSeek model name or alias
             system_prompt: Optional system prompt
-            temperature: Temperature for generation (0.0-2.0)
+            temperature: Sampling temperature (0.0-2.0), or ``None`` to omit it
             max_output_tokens: Maximum tokens to generate
             **kwargs: Additional generation parameters
 
@@ -106,8 +106,11 @@ class DeepSeekProvider(OpenAICompatibleProvider):
         # Get model capabilities to adjust parameters
         capabilities = self.get_capabilities(model_name)
 
-        # Adjust temperature according to model constraints
-        if hasattr(capabilities, "temperature_constraint") and capabilities.temperature_constraint:
+        # Clamp only an explicitly-supplied temperature. When the caller omits it
+        # (None) we pass None through so the parent omits it on the wire and the
+        # API applies its own default (deepseek-reasoner ignores temperature; V3
+        # chat defaults server-side).
+        if temperature is not None and capabilities.temperature_constraint:
             temperature = capabilities.temperature_constraint.get_corrected_value(temperature)
 
         # DeepSeek V4 Pro exposes thinking mode via extra_body on a single

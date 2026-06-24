@@ -36,7 +36,7 @@ class MoonshotProvider(OpenAICompatibleProvider):
             max_image_size_mb=20.0,
             aliases=["kimi", "kimi-k2", "k2.6", "kimi-k26"],
             intelligence_score=20,
-            description="Kimi K2.6 (256K context) - Multimodal model with vision and always-on thinking; thinking mode requires temperature=1.0",
+            description="Kimi K2.6 (256K context) - Multimodal model with vision and always-on thinking; temperature is not sent (Kimi K2 thinking ignores it)",
         ),
     }
 
@@ -82,7 +82,7 @@ class MoonshotProvider(OpenAICompatibleProvider):
         prompt: str,
         model_name: str,
         system_prompt: str | None = None,
-        temperature: float = 0.6,
+        temperature: float | None = None,
         max_output_tokens: int | None = None,
         **kwargs,
     ) -> ModelResponse:
@@ -92,7 +92,7 @@ class MoonshotProvider(OpenAICompatibleProvider):
             prompt: User prompt
             model_name: Moonshot model name or alias
             system_prompt: Optional system prompt
-            temperature: Temperature for generation (0.0-1.0)
+            temperature: Ignored — Kimi K2 thinking models do not accept it
             max_output_tokens: Maximum tokens to generate
             **kwargs: Additional generation parameters
 
@@ -109,9 +109,11 @@ class MoonshotProvider(OpenAICompatibleProvider):
         # Get model capabilities to adjust parameters
         capabilities = self.get_capabilities(model_name)
 
-        # Adjust temperature according to model constraints
-        if hasattr(capabilities, "temperature_constraint") and capabilities.temperature_constraint:
-            temperature = capabilities.temperature_constraint.get_corrected_value(temperature)
+        # Kimi K2 thinking models do not accept a temperature parameter. Per
+        # Moonshot's official guidance: "temperature is not modifiable — use the
+        # default and do not pass it explicitly." Always omit it (thinking is
+        # forced on via extra_body below); any caller value is dropped.
+        temperature = None
 
         # Moonshot API requires explicit extra_body to control thinking mode.
         # Merge into any caller-supplied extra_body so we don't silently drop

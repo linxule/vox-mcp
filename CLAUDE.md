@@ -5,6 +5,7 @@
 - **Pure API passthrough** — prompts go to providers unmodified, responses come back unmodified
 - **No system prompt injection** — `system_prompt` is always `None` at the provider boundary
 - **No response modification** — no formatting, no coaching, no behavioral directives
+- **No fabricated sampling params** — `temperature` is omitted unless the caller sets one, so the model uses its own server-side default
 - **Conversation memory is the sole value-add** — in-memory threads via `continuation_id`
 
 ## Quick Commands
@@ -50,6 +51,7 @@ uv run pytest                    # Run tests
 - `GEMINI_API_KEY`, `OPENAI_API_KEY`, etc. — provider API keys (at least one required)
 - `DEFAULT_MODEL` — `auto` (default) or a specific model name
 - `VOX_FORCE_ENV_OVERRIDE` — when `true`, `.env` values override system env vars
+- `VOX_GEMINI_USE_INTERACTIONS` — when `true` (default), Gemini uses the stateless Interactions API; `false` forces `generateContent`
 - `CONVERSATION_TIMEOUT_HOURS` — thread TTL (default: 24)
 - `MAX_CONVERSATION_TURNS` — thread length limit (default: 100)
 - `VOX_THREADS_DIR` — durable thread storage path (default: `~/.vox/threads/`)
@@ -68,11 +70,34 @@ Temperature and thinking parameters use parallel constraint abstractions on `Mod
 - `EffortLevelThinkingConstraint` — maps `thinking_mode` to effort strings (OpenAI)
 - `AlwaysOnThinkingConstraint` — thinking is inherent to the model (DeepSeek, Moonshot)
 
+Temperature is a **pure passthrough**: vox never fabricates a default. When the caller omits
+`temperature` it is omitted from the provider request (the model uses its own default); an
+explicit value is validated/clamped per the model's constraint. In `openai_compatible.py`,
+"model supports sampling params" (gates `max_tokens`/`top_p` for o3/o4) is decoupled from
+"send temperature" (only when explicitly resolved). Guard: `tests/test_temperature_passthrough.py`.
+
+## Concurrency
+
+The MCP low-level server dispatches each tool call concurrently (anyio `tg.start_soon`). Provider
+SDK calls are synchronous/blocking, so `tools/simple/base.py` runs `provider.generate_content` via
+`asyncio.to_thread` — otherwise a multi-second call freezes the single event loop (incl. the stdio
+streams) and concurrent calls stall until the client drops the connection. Lazy client init is
+guarded by a `threading.Lock` (double-checked) since cached providers now run in worker threads.
+Guard: `tests/test_concurrency_event_loop.py`.
+
 ## Provider-Specific Notes
+
+### Gemini (Interactions API)
+- Default path is the stateless **Interactions API** (`client.interactions.create`, `store=False`) —
+  Google's GA surface. vox keeps owning conversation memory (full prompt is the interaction `input`).
+- Falls back to `generateContent` (legacy but fully supported) on any failure; image inputs always
+  use `generateContent`. Toggle with `VOX_GEMINI_USE_INTERACTIONS` (default on).
+- Gemini 3 uses an enum `thinking_level` (valid on google-genai ≥2.x). Interactions accepts only
+  `low`/`high` for Gemini 2.x and `low`/`medium`/`high` for Gemini 3 (`minimal` is Flash-only).
 
 ### Moonshot (Kimi K2.6)
 - Thinking mode requires `extra_body={'thinking': {'type': 'enabled'}}`
-- Temperature must be 1.0 (always-on thinking, enforced via `FixedTemperatureConstraint`)
+- Temperature is not sent — Kimi K2 thinking ignores it ("not modifiable — do not pass explicitly"); `moonshot.py` always omits it
 - API endpoint: `api.moonshot.cn/v1`
 - `kimi-k2-thinking-turbo` was removed in v0.3.0 (deprecated upstream)
 
