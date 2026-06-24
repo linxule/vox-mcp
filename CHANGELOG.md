@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.0 — Temperature passthrough, Gemini Interactions API, concurrency fix
+
+### Behavior changes
+
+- **Temperature is now a pure passthrough.** Vox no longer fabricates a default temperature (previously `1.0`) — when the caller omits `temperature` it is omitted from the provider request so the model applies its own server-side default. This aligns with 2026 provider guidance (Gemini 3 degrades below 1.0; OpenAI reasoning and Anthropic Opus 4.7+ reject non-default values; Kimi/DeepSeek reasoners ignore it). An explicit temperature is still validated and clamped per the model's constraint. **Kimi K2 thinking now omits temperature entirely** (Moonshot guidance: "not modifiable — do not pass it explicitly") rather than sending `1.0`, correcting the 0.3.0 note. The MCP temperature schema ceiling is raised `0–1` → `0–2` to match provider capability (per-model clamping still applies).
+- **Gemini uses the stateless Interactions API by default.** Gemini requests now go through Google's GA Interactions API (`store=false`); vox keeps owning conversation memory. On any failure it falls back to the (fully supported) `generateContent` endpoint and skips Interactions for the rest of the session. Set `VOX_GEMINI_USE_INTERACTIONS=false` to force `generateContent`. Gemini 3 `thinking_level` (minimal/low/medium/high) is now supported; image inputs use `generateContent`.
+
+### Fixes
+
+- **Concurrent tool calls no longer drop the MCP connection.** The blocking provider call is offloaded via `asyncio.to_thread`, keeping the event loop (and stdio streams) responsive under the MCP SDK's concurrent request dispatch. Lazy provider-client initialization is now thread-safe (double-checked locking).
+
+### Dependencies & CI
+
+- Bumped `google-genai` 1.x → 2.x (required for the Interactions API and the corrected Gemini 3 `thinking_level` enum), plus `mcp`, `openai`, `anthropic`, and `pydantic` to current.
+- Added a verify CI workflow (ruff lint + format check + pytest on Python 3.10 & 3.13) and grouped Dependabot.
+
 ## 0.3.0 — Drop deprecated kimi-k2-thinking-turbo
 
 ### Breaking
