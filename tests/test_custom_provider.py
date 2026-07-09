@@ -172,7 +172,7 @@ class TestCustomProviderRegistration:
             {
                 "OPENROUTER_API_KEY": "test-openrouter-key",
                 "CUSTOM_API_PLACEHOLDER": "configured",
-                "OPENROUTER_ALLOWED_MODELS": "llama,anthropic/claude-opus-4.1",
+                "OPENROUTER_ALLOWED_MODELS": "llama,anthropic/claude-opus-4.8",
             },
             clear=True,
         ):

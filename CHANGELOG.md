@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — 2026 Anthropic lineup
+
+### Breaking
+
+- **OpenRouter Anthropic entries refreshed to the 2026 lineup** (verified against the live OpenRouter `/api/v1/models` catalog). `anthropic/claude-opus-4.1` (deprecated upstream, retires 2026-08-05), `anthropic/claude-sonnet-4.5`, `anthropic/claude-sonnet-4.1`, and `anthropic/claude-3.5-haiku` (both dead upstream) are replaced by `anthropic/claude-fable-5`, `anthropic/claude-opus-4.8`, `anthropic/claude-sonnet-5`, and `anthropic/claude-haiku-4.5`. The generic aliases `opus`, `sonnet`, `haiku` now resolve to the new models. Removed versioned aliases (e.g. `sonnet4.5`) no longer resolve; unknown names pass through unchanged. No versioned aliases were added — the native Anthropic provider owns those, so dual-key setups can't be silently re-routed.
+
+### Behavior changes
+
+- **Native Anthropic catalog refreshed to the 2026 lineup** (verified against the Claude API models overview). Added `claude-fable-5`, `claude-opus-4-8`, `claude-sonnet-5` (1M context, 128K output) and `claude-haiku-4-5` (200K context, 64K output). The Fable 5 / Opus 4.8 / Sonnet 5 trio uses server-side adaptive thinking: vox sends no thinking block and omits temperature entirely (`supports_temperature=False` — the API rejects any non-default temperature/top_p/top_k with a 400). `claude-3-opus` stays in the catalog: retired for general access Jan 2026, but researcher-access keys can still call the pinned snapshot.
+- **Extended-thinking requests can no longer 400 on budget/temperature conflicts.** When a thinking block is sent (Haiku 4.5 via `thinking_mode`), `max_tokens` now grows to fit the thinking budget (Anthropic requires `budget_tokens < max_tokens`; the old default of 4000 would have rejected larger budgets), and any explicit temperature is dropped — Anthropic rejects non-default temperature alongside thinking. If the budget cannot fit under the model's output limit, thinking is skipped rather than sending a request the API will refuse.
+- **`max_image_size_mb` corrected 32 → 10 for Anthropic models.** 10 MB is the per-image limit on the direct Claude API; 32 MB is the whole-request cap.
+
 ## 0.4.0 — Temperature passthrough, Gemini Interactions API, concurrency fix
 
 ### Behavior changes

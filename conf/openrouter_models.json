@@ -7,15 +7,29 @@
   },
   "models": [
     {
-      "model_name": "anthropic/claude-opus-4.1",
-      "friendly_name": "OpenRouter (anthropic/claude-opus-4.1)",
+      "model_name": "anthropic/claude-fable-5",
+      "friendly_name": "OpenRouter (anthropic/claude-fable-5)",
+      "aliases": [],
+      "intelligence_score": 20,
+      "description": "Claude Fable 5 via OpenRouter",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": false,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true
+    },
+    {
+      "model_name": "anthropic/claude-opus-4.8",
+      "friendly_name": "OpenRouter (anthropic/claude-opus-4.8)",
       "aliases": [
         "opus"
       ],
-      "intelligence_score": 18,
-      "description": "Claude Opus 4.1 via OpenRouter",
-      "context_window": 200000,
-      "max_output_tokens": 32000,
+      "intelligence_score": 19,
+      "description": "Claude Opus 4.8 via OpenRouter",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
       "supports_extended_thinking": false,
       "supports_system_prompts": true,
       "supports_streaming": true,
@@ -23,16 +37,15 @@
       "supports_images": true
     },
     {
-      "model_name": "anthropic/claude-sonnet-4.5",
-      "friendly_name": "OpenRouter (anthropic/claude-sonnet-4.5)",
+      "model_name": "anthropic/claude-sonnet-5",
+      "friendly_name": "OpenRouter (anthropic/claude-sonnet-5)",
       "aliases": [
-        "sonnet",
-        "sonnet4.5"
+        "sonnet"
       ],
       "intelligence_score": 17,
-      "description": "Claude Sonnet 4.5 via OpenRouter",
-      "context_window": 200000,
-      "max_output_tokens": 16000,
+      "description": "Claude Sonnet 5 via OpenRouter",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
       "supports_extended_thinking": false,
       "supports_system_prompts": true,
       "supports_streaming": true,
@@ -40,35 +53,20 @@
       "supports_images": true
     },
     {
-      "model_name": "anthropic/claude-sonnet-4.1",
-      "friendly_name": "OpenRouter (anthropic/claude-sonnet-4.1)",
-      "aliases": [
-        "sonnet4.1"
-      ],
-      "intelligence_score": 16,
-      "description": "Claude Sonnet 4.1 via OpenRouter",
-      "context_window": 200000,
-      "max_output_tokens": 16000,
-      "supports_extended_thinking": false,
-      "supports_system_prompts": true,
-      "supports_streaming": true,
-      "supports_function_calling": true,
-      "supports_images": true
-    },
-    {
-      "model_name": "anthropic/claude-3.5-haiku",
-      "friendly_name": "OpenRouter (anthropic/claude-3.5-haiku)",
+      "model_name": "anthropic/claude-haiku-4.5",
+      "friendly_name": "OpenRouter (anthropic/claude-haiku-4.5)",
       "aliases": [
         "haiku"
       ],
-      "intelligence_score": 12,
-      "description": "Claude 3.5 Haiku via OpenRouter",
+      "intelligence_score": 13,
+      "description": "Claude Haiku 4.5 via OpenRouter",
       "context_window": 200000,
-      "max_output_tokens": 8192,
+      "max_output_tokens": 64000,
       "supports_extended_thinking": false,
       "supports_system_prompts": true,
       "supports_streaming": true,
-      "supports_function_calling": true
+      "supports_function_calling": true,
+      "supports_images": true
     },
     {
       "model_name": "openai/o3",

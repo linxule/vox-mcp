@@ -26,7 +26,7 @@ Send a prompt, optionally attach files or images, pick a model (or let the agent
 |----------|-------------|----------------|
 | Google Gemini | `GEMINI_API_KEY` | gemini-2.5-pro |
 | OpenAI | `OPENAI_API_KEY` | gpt-5.1, gpt-5, o3, o4-mini |
-| Anthropic | `ANTHROPIC_API_KEY` | claude-4-opus, claude-4-sonnet |
+| Anthropic | `ANTHROPIC_API_KEY` | claude-opus-4-8, claude-sonnet-5, claude-haiku-4-5 |
 | xAI | `XAI_API_KEY` | grok-3, grok-3-fast |
 | DeepSeek | `DEEPSEEK_API_KEY` | deepseek-v4-pro |
 | Moonshot (Kimi) | `MOONSHOT_API_KEY` | kimi-k2.6 |
