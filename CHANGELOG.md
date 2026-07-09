@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 2026 Anthropic lineup
+## 0.5.0 — 2026 Anthropic lineup
 
 ### Breaking
 
