@@ -72,9 +72,80 @@ Temperature and thinking parameters use parallel constraint abstractions on `Mod
 
 Temperature is a **pure passthrough**: vox never fabricates a default. When the caller omits
 `temperature` it is omitted from the provider request (the model uses its own default); an
-explicit value is validated/clamped per the model's constraint. In `openai_compatible.py`,
-"model supports sampling params" (gates `max_tokens`/`top_p` for o3/o4) is decoupled from
-"send temperature" (only when explicitly resolved). Guard: `tests/test_temperature_passthrough.py`.
+explicit value is validated/clamped per the model's constraint.
+Guard: `tests/test_temperature_passthrough.py`.
+
+### Request-parameter support is DECLARED, never inferred
+
+`supports_temperature` used to do two unrelated jobs — it governed temperature *and* was read
+as a proxy for "this model accepts `max_tokens` and the sampling penalties". Those are
+different questions. A model can reject temperature and happily accept a token cap; a model
+can accept temperature and reject penalties. The coupling meant o3's `max_tokens` was dropped
+because of a flag about temperature.
+
+Each model now declares its own exclusions in **`unsupported_params`**, and
+`openai_compatible.py` filters `SAMPLING_PASSTHROUGH_PARAMS` against that list. Nothing is
+inferred from anything else.
+
+- **`None` means NOT DECLARED. `[]` means "declared: accepts everything else."** They behave
+  identically on the wire (`or []` at the single read site) and differently to the gate. The
+  default is `None` precisely so an omission cannot masquerade as a considered answer.
+- A model with `supports_temperature=False` **must** declare `unsupported_params`.
+  Enforced by `tests/test_config_integrity.py`. Guard: `tests/test_sampling_params.py`.
+
+## Invariants
+
+Three rules that are load-bearing, each one paid for by a bug that shipped.
+
+### 1. The test suite must never touch the real `~/.vox`
+
+The suite was writing into the user's **actual conversation store** — 151 test artifacts
+accumulated alongside 976 real threads. Worse, one test was **self-concealing**: it failed
+once on a clean machine, wrote the artifact that satisfied its own lookup, and was green
+forever after. Only a fresh CI runner ever told the truth.
+
+`tests/conftest.py` has an autouse fixture that repoints `config.VOX_THREADS_DIR` at a
+`tmp_path`. **Patch `config.VOX_THREADS_DIR`, not a helper** — both `utils/thread_persistence.py`
+and `utils/markdown_export.py` do a late `from config import VOX_THREADS_DIR` *inside* the
+function, so patching either module's helper leaves the other one still writing to the home
+directory. `tests/test_home_isolation.py` is the guard, and it includes a
+`test_the_guard_is_not_vacuous`.
+
+### 2. A model in the catalog is a promise vox can call it
+
+`grok-build-0.1` sat in the xAI chat catalog while xAI documents it **only** on the Code API
+(`/v1/responses`). vox advertised a model it could not call: the request passed validation and
+would have died at the wire.
+
+An ID that cannot be served is **worse than an absent one** — it fails late, at the provider,
+opaquely, instead of early, at validation, legibly. Before adding a model, confirm the vendor
+documents it on the endpoint the provider actually calls. A vendor's *model index* is not that
+evidence; the endpoint's own page is.
+
+Related: **never alias a retired ID onto a live model.** Silently redirecting `grok-4` →
+`grok-4.5` is a lie about which model answered. A wrong ID that errors loudly teaches the
+caller something; a silent substitution hands them plausible output from a model they did not
+ask for and nobody ever finds out.
+
+### 3. Models are declared THREE ways — a gate keyed on one of them is blind
+
+| Mechanism | Providers | Class `MODEL_CAPABILITIES` |
+|---|---|---|
+| `conf/*_models.json` via `RegistryBackedProviderMixin` | gemini, openai, xai | populated |
+| hardcoded Python dict in the provider module | anthropic, deepseek, moonshot | populated |
+| instance-level registry, built in `__init__` | openrouter, custom | **empty** |
+
+The first version of the integrity gate globbed `conf/*_models.json` — so it covered mechanisms
+1 and 3 and was structurally blind to 2, while reporting green. DeepSeek and Moonshot are
+`OpenAICompatibleProvider` subclasses whose wire payload *is* governed by `unsupported_params`,
+and they got zero coverage. A naive rewrite keyed on the class dict would have flipped the blind
+spot onto mechanism 3 instead.
+
+**The discovery mechanism was itself the enumeration**, wearing a costume that looked like
+discovery. `tests/test_config_integrity.py` now iterates providers and keys coverage on the
+**`ProviderType` enum** — the authority for what exists — so a provider that yields no
+capabilities *fails* rather than being skipped. If you add a fourth declaration mechanism, that
+test is what tells you.
 
 ## Concurrency
 
