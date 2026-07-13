@@ -13,6 +13,17 @@ from providers.xai import XAIModelProvider
 # pinned here as *negatives*.
 RETIRED_MODELS = ["grok-4", "grok-3", "grok-3-fast", "grok4", "grok3", "grokfast", "grok3fast"]
 
+# Aliases xAI's own model table attests, which vox deliberately does not carry:
+# cross-model aliases that would silently substitute a different model, and
+# *-latest pointers whose upstream target moves. See the test below.
+UNSOURCEABLE_ALIASES = [
+    "grok-code-fast-1",
+    "grok-code-fast",
+    "grok-latest",
+    "grok-4.5-latest",
+    "grok-build-latest",
+]
+
 
 class TestXAIProvider:
     """Test X.AI provider functionality."""
@@ -73,6 +84,24 @@ class TestXAIProvider:
         provider = XAIModelProvider("test-key")
         assert provider.validate_model_name(retired) is False
 
+    @pytest.mark.parametrize("name", UNSOURCEABLE_ALIASES)
+    def test_unsourceable_aliases_are_not_carried(self, name):
+        """Two alias families xAI attests but vox deliberately does not carry.
+
+        Cross-model aliases (grok-code-fast-1 -> grok-build-0.1) name a real,
+        historically distinct model. xAI resolves them onto Grok Build today,
+        but encoding that here asserts an equivalence vox does not control: if
+        xAI un-aliases them, vox would go on silently substituting. A wrong ID
+        that errors loudly teaches the caller; a silent substitution returns
+        plausible output from the wrong model and nobody finds out.
+
+        Moving pointers (*-latest) mean something different upstream over time
+        (grok-latest resolves to grok-4.3, not the flagship). Baking one into a
+        static registry is the same rot-by-standing-still this catalog fixes.
+        """
+        provider = XAIModelProvider("test-key")
+        assert provider.validate_model_name(name) is False
+
     def test_resolve_model_name(self):
         """Test model name resolution."""
         provider = XAIModelProvider("test-key")
@@ -82,9 +111,8 @@ class TestXAIProvider:
         assert provider._resolve_model_name("grok45") == "grok-4.5"
         assert provider._resolve_model_name("grok4.5") == "grok-4.5"
         assert provider._resolve_model_name("grok4.3") == "grok-4.3"
-        assert provider._resolve_model_name("grok-latest") == "grok-4.3"
         assert provider._resolve_model_name("grok-4.20") == "grok-4.20-0309-reasoning"
-        assert provider._resolve_model_name("grok-code-fast-1") == "grok-build-0.1"
+        assert provider._resolve_model_name("grok-build") == "grok-build-0.1"
 
         # Test full name passthrough
         assert provider._resolve_model_name("grok-4.5") == "grok-4.5"
@@ -423,8 +451,8 @@ class TestXAIProvider:
         call_kwargs = mock_client.chat.completions.create.call_args[1]
         assert call_kwargs["model"] == "grok-4.20-0309-reasoning"
 
-        # Test grok-code-fast-1 -> grok-build-0.1
+        # Test grok-build -> grok-build-0.1
         mock_response.model = "grok-build-0.1"
-        provider.generate_content(prompt="Test", model_name="grok-code-fast-1", temperature=0.7)
+        provider.generate_content(prompt="Test", model_name="grok-build", temperature=0.7)
         call_kwargs = mock_client.chat.completions.create.call_args[1]
         assert call_kwargs["model"] == "grok-build-0.1"
