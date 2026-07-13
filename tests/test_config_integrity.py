@@ -82,3 +82,31 @@ def test_no_model_declares_a_zero_context_window(path: Path):
     """A missing context_window silently becomes 0 and breaks token budgeting."""
     bad = [m["model_name"] for m in _models(path) if not m.get("context_window")]
     assert not bad, f"{path.name}: models with no context_window: {bad}"
+
+
+@pytest.mark.parametrize("path", CONFIGS, ids=lambda p: p.name)
+def test_a_reasoning_model_declares_which_params_it_rejects(path: Path):
+    """
+    A model that rejects temperature almost certainly rejects other params too —
+    o-series models take max_completion_tokens rather than max_tokens, and reject
+    the sampling penalties. That used to be INFERRED from supports_temperature,
+    which is why nobody had to write it down.
+
+    Now that the inference is gone, an entry that says `supports_temperature: false`
+    and stops there would quietly start receiving max_tokens and penalties. The
+    omission is invisible at runtime — the request just fails at the provider, or
+    worse, silently ignores the cap. So the declaration is required, not optional:
+    if a model really does accept everything else, it says so with an explicit
+    empty list.
+    """
+    undeclared = [
+        m["model_name"]
+        for m in _models(path)
+        if m.get("supports_temperature") is False and "unsupported_params" not in m
+    ]
+    assert not undeclared, (
+        f"{path.name}: these models reject temperature but do not declare "
+        f"`unsupported_params`, so max_tokens and the penalties would now be sent "
+        f"to them: {undeclared}\n"
+        "Declare the list explicitly (use [] to mean 'accepts everything else')."
+    )

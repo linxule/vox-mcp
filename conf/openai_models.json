@@ -19,7 +19,15 @@
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_temperature": false,
-      "temperature_constraint": "fixed"
+      "temperature_constraint": "fixed",
+      "unsupported_params": [
+        "max_tokens",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "stop",
+        "stream"
+      ]
     },
     {
       "model_name": "o3-mini",
@@ -36,7 +44,15 @@
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_temperature": false,
-      "temperature_constraint": "fixed"
+      "temperature_constraint": "fixed",
+      "unsupported_params": [
+        "max_tokens",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "stop",
+        "stream"
+      ]
     },
     {
       "model_name": "o3-pro",
@@ -54,7 +70,15 @@
       "supports_function_calling": true,
       "supports_temperature": false,
       "temperature_constraint": "fixed",
-      "use_openai_response_api": true
+      "use_openai_response_api": true,
+      "unsupported_params": [
+        "max_tokens",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "stop",
+        "stream"
+      ]
     },
     {
       "model_name": "o4-mini",
@@ -71,7 +95,15 @@
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_temperature": false,
-      "temperature_constraint": "fixed"
+      "temperature_constraint": "fixed",
+      "unsupported_params": [
+        "max_tokens",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "stop",
+        "stream"
+      ]
     },
     {
       "model_name": "gpt-4.1",
