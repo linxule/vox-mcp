@@ -42,6 +42,23 @@ class TestXAIProvider:
 
         utils.model_restrictions._restriction_service = None
 
+        # And drop any provider INSTANCE the registry cached while XAI_API_KEY was
+        # patched into the environment. @patch.dict restores the env var, but the
+        # registry has already memoised a live provider built from it — so without
+        # this, X.AI stays "configured" for the rest of the session and later tests
+        # (tests/test_listmodels.py) see a provider that should not exist.
+        #
+        # conftest's autouse fixture re-registers the provider CLASSES for the next
+        # test, so resetting here is safe; what it cannot do is evict a cached
+        # instance, which is exactly what leaks.
+        #
+        # This only ever bit us in a subset run: pytest collects test_listmodels
+        # before test_xai_provider alphabetically, so the full suite passed green
+        # while the pollution sat there. An order-dependent green is not a green.
+        from providers.registry import ModelProviderRegistry
+
+        ModelProviderRegistry.reset_for_testing()
+
     @patch.dict(os.environ, {"XAI_API_KEY": "test-key"})
     def test_initialization(self):
         """Test provider initialization."""
