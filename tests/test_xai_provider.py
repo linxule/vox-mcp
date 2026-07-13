@@ -82,9 +82,11 @@ class TestXAIProvider:
         assert provider.validate_model_name("grok") is True
         assert provider.validate_model_name("grok45") is True
         assert provider.validate_model_name("grok-4.3") is True
-        assert provider.validate_model_name("grok-4.20-0309-reasoning") is True
-        assert provider.validate_model_name("grok-4.20") is True
-        assert provider.validate_model_name("grok-build-0.1") is True
+
+        # Dropped from the catalogue — must be rejected, not silently redirected
+        assert provider.validate_model_name("grok-4.20-0309-reasoning") is False
+        assert provider.validate_model_name("grok-4.20") is False
+        assert provider.validate_model_name("grok-build-0.1") is False
 
         # Test invalid model
         assert provider.validate_model_name("invalid-model") is False
@@ -112,6 +114,11 @@ class TestXAIProvider:
         that errors loudly teaches the caller; a silent substitution returns
         plausible output from the wrong model and nobody finds out.
 
+        (Grok Build itself is no longer in the catalogue at all -- it is a Code
+        API model, not a chat model. See the removal guard above. These aliases
+        stay pinned as negatives regardless: the reason not to carry them was
+        never "the target is absent", it was "the mapping is not ours to make".)
+
         Moving pointers (*-latest) mean something different upstream over time
         (grok-latest resolves to grok-4.3, not the flagship). Baking one into a
         static registry is the same rot-by-standing-still this catalog fixes.
@@ -128,13 +135,10 @@ class TestXAIProvider:
         assert provider._resolve_model_name("grok45") == "grok-4.5"
         assert provider._resolve_model_name("grok4.5") == "grok-4.5"
         assert provider._resolve_model_name("grok4.3") == "grok-4.3"
-        assert provider._resolve_model_name("grok-4.20") == "grok-4.20-0309-reasoning"
-        assert provider._resolve_model_name("grok-build") == "grok-build-0.1"
 
         # Test full name passthrough
         assert provider._resolve_model_name("grok-4.5") == "grok-4.5"
         assert provider._resolve_model_name("grok-4.3") == "grok-4.3"
-        assert provider._resolve_model_name("grok-4.20-0309-non-reasoning") == "grok-4.20-0309-non-reasoning"
 
     def test_get_capabilities_grok_4_5(self):
         """Test getting model capabilities for Grok 4.5 (flagship)."""
@@ -178,30 +182,31 @@ class TestXAIProvider:
         assert capabilities.supports_extended_thinking is True
         assert capabilities.supports_function_calling is True
 
-    def test_get_capabilities_grok_4_20_variants(self):
-        """The 4.20 family splits reasoning from non-reasoning."""
+    def test_removed_models_fail_loudly_rather_than_resolving_elsewhere(self):
+        """
+        The 4.20 line and Grok Build are gone from the catalogue. Grok Build was never
+        a chat model at all -- xAI documents it only on the Code API (/v1/responses)
+        and never once on chat/completions -- so vox was advertising a model it could
+        not call.
+
+        The failure mode to guard is not absence, it is SUBSTITUTION. If `grok-build`
+        or `grok-4.20` quietly resolved to grok-4.5, a caller would get plausible
+        output from a model they did not ask for and would never learn otherwise. A
+        removed ID must raise.
+        """
         provider = XAIModelProvider("test-key")
 
-        reasoning = provider.get_capabilities("grok-4.20-0309-reasoning")
-        assert reasoning.context_window == 1_000_000
-        assert reasoning.supports_extended_thinking is True
-
-        non_reasoning = provider.get_capabilities("grok-4.20-0309-non-reasoning")
-        assert non_reasoning.context_window == 1_000_000
-        assert non_reasoning.supports_extended_thinking is False
-
-        multi_agent = provider.get_capabilities("grok-4.20-multi-agent-0309")
-        assert multi_agent.context_window == 1_000_000
-        assert multi_agent.supports_extended_thinking is True
-
-    def test_get_capabilities_grok_build(self):
-        """Grok Build 0.1 is the code-focused model."""
-        provider = XAIModelProvider("test-key")
-
-        capabilities = provider.get_capabilities("grok-build-0.1")
-        assert capabilities.model_name == "grok-build-0.1"
-        assert capabilities.context_window == 256_000
-        assert capabilities.allow_code_generation is True
+        for gone in [
+            "grok-build-0.1",
+            "grok-build",
+            "grok-4.20-0309-reasoning",
+            "grok-4.20-0309-non-reasoning",
+            "grok-4.20-multi-agent-0309",
+            "grok-4.20",
+        ]:
+            assert provider.validate_model_name(gone) is False, f"{gone} should be rejected"
+            with pytest.raises(ValueError):
+                provider.get_capabilities(gone)
 
     def test_get_capabilities_with_shorthand(self):
         """Test getting model capabilities with shorthand."""
@@ -230,13 +235,11 @@ class TestXAIProvider:
         """X.AI capabilities should expose extended thinking support correctly."""
         provider = XAIModelProvider("test-key")
 
-        thinking_aliases = ["grok-4.5", "grok", "grok-4.3", "grok-4.20"]
+        # Every model remaining in the catalogue is a reasoning model. The only
+        # non-reasoning Grok was grok-4.20-0309-non-reasoning, dropped with its line.
+        thinking_aliases = ["grok-4.5", "grok", "grok45", "grok-4.3", "grok4.3"]
         for alias in thinking_aliases:
             assert provider.get_capabilities(alias).supports_extended_thinking is True
-
-        non_thinking = ["grok-4.20-0309-non-reasoning", "grok-4.20-non-reasoning"]
-        for alias in non_thinking:
-            assert provider.get_capabilities(alias).supports_extended_thinking is False
 
     def test_provider_type(self):
         """Test provider type identification."""
@@ -330,9 +333,7 @@ class TestXAIProvider:
 
         assert provider.validate_model_name("grok-4.5") is True
         assert provider.validate_model_name("grok-4.3") is True
-        assert provider.validate_model_name("grok-4.20-0309-reasoning") is True
         assert provider.validate_model_name("grok") is True
-        assert provider.validate_model_name("grok-build-0.1") is True
 
     def test_friendly_name(self):
         """Test friendly name constant."""
@@ -349,13 +350,17 @@ class TestXAIProvider:
         # Check that all expected base models are present
         assert "grok-4.5" in provider.MODEL_CAPABILITIES
         assert "grok-4.3" in provider.MODEL_CAPABILITIES
-        assert "grok-4.20-0309-reasoning" in provider.MODEL_CAPABILITIES
-        assert "grok-4.20-0309-non-reasoning" in provider.MODEL_CAPABILITIES
-        assert "grok-4.20-multi-agent-0309" in provider.MODEL_CAPABILITIES
-        assert "grok-build-0.1" in provider.MODEL_CAPABILITIES
 
-        # No retired model may reappear as a base model
-        for retired in ["grok-4", "grok-3", "grok-3-fast"]:
+        # No retired or removed model may reappear as a base model
+        for retired in [
+            "grok-4",
+            "grok-3",
+            "grok-3-fast",
+            "grok-build-0.1",
+            "grok-4.20-0309-reasoning",
+            "grok-4.20-0309-non-reasoning",
+            "grok-4.20-multi-agent-0309",
+        ]:
             assert retired not in provider.MODEL_CAPABILITIES
 
         # Check model configs have required fields
@@ -462,14 +467,8 @@ class TestXAIProvider:
         call_kwargs = mock_client.chat.completions.create.call_args[1]
         assert call_kwargs["model"] == "grok-4.3"
 
-        # Test grok-4.20 -> grok-4.20-0309-reasoning
-        mock_response.model = "grok-4.20-0309-reasoning"
-        provider.generate_content(prompt="Test", model_name="grok-4.20", temperature=0.7)
+        # Test grok45 -> grok-4.5
+        mock_response.model = "grok-4.5"
+        provider.generate_content(prompt="Test", model_name="grok45", temperature=0.7)
         call_kwargs = mock_client.chat.completions.create.call_args[1]
-        assert call_kwargs["model"] == "grok-4.20-0309-reasoning"
-
-        # Test grok-build -> grok-build-0.1
-        mock_response.model = "grok-build-0.1"
-        provider.generate_content(prompt="Test", model_name="grok-build", temperature=0.7)
-        call_kwargs = mock_client.chat.completions.create.call_args[1]
-        assert call_kwargs["model"] == "grok-build-0.1"
+        assert call_kwargs["model"] == "grok-4.5"
