@@ -90,7 +90,7 @@ class TestOpenRouterProvider:
         # Removed Anthropic version aliases are not retained; native Anthropic owns versioned aliases.
         assert provider._resolve_model_name("sonnet4.1") == "sonnet4.1"
         assert provider._resolve_model_name("sonnet4.5") == "sonnet4.5"
-        assert provider._resolve_model_name("mistral") == "mistralai/mistral-large-2411"
+        assert provider._resolve_model_name("mistral") == "mistralai/mistral-large-2512"
         assert provider._resolve_model_name("grok-4.5") == "x-ai/grok-4.5"
         assert provider._resolve_model_name("grok45") == "x-ai/grok-4.5"
         assert provider._resolve_model_name("grok") == "x-ai/grok-4.5"
@@ -102,7 +102,7 @@ class TestOpenRouterProvider:
         assert provider._resolve_model_name("OPUS") == "anthropic/claude-opus-4.8"
         assert provider._resolve_model_name("SONNET") == "anthropic/claude-sonnet-5"
         assert provider._resolve_model_name("O3") == "openai/o3"
-        assert provider._resolve_model_name("Mistral") == "mistralai/mistral-large-2411"
+        assert provider._resolve_model_name("Mistral") == "mistralai/mistral-large-2512"
 
         # Test direct model names (should pass through unchanged)
         assert provider._resolve_model_name("anthropic/claude-opus-4.8") == "anthropic/claude-opus-4.8"

@@ -53,6 +53,7 @@ class ModelCapabilities:
     supports_images: bool = False
     supports_json_mode: bool = False
     supports_temperature: bool = True
+    unsupported_params: list[str] = field(default_factory=list)
     use_openai_response_api: bool = False
     default_reasoning_effort: str | None = None
     allow_code_generation: bool = (
