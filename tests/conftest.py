@@ -29,8 +29,9 @@ import config  # noqa: E402
 
 importlib.reload(config)
 
-# Note: This creates a test sandbox environment
-# Tests create their own temporary directories as needed
+# Filesystem isolation is NOT automatic just because tests use tmp_path fixtures —
+# any code path that resolves VOX_THREADS_DIR reaches the user's real ~/.vox/threads
+# unless something redirects it. See the isolate_vox_threads_dir autouse fixture below.
 
 # Configure asyncio for Windows compatibility
 if sys.platform == "win32":
@@ -60,6 +61,35 @@ def project_path(tmp_path):
     test_dir.mkdir(parents=True, exist_ok=True)
 
     return test_dir
+
+
+@pytest.fixture(autouse=True)
+def isolate_vox_threads_dir(tmp_path, monkeypatch):
+    """
+    Keep the test suite out of the user's real thread store (~/.vox/threads).
+
+    Without this, `add_turn()` reaches through conversation_memory into the
+    persistence layer, which resolves VOX_THREADS_DIR and appends JSONL to the
+    user's actual conversation history. That is bad on its own, but the second
+    effect is worse: it makes a test pass for the wrong reason.
+
+    test_add_turn_success asserted `get` was called once. On a clean machine the
+    thread's JSONL does not exist, so the persistence layer takes its
+    retroactive-header path and calls storage.get() a SECOND time — the assertion
+    fails. But that same run writes the file, and every run afterwards finds it,
+    short-circuits the retroactive path, and goes green. So the test failed once
+    on a fresh checkout, healed itself into a false pass on every dev machine,
+    and only ever told the truth on a fresh CI runner.
+
+    config.VOX_THREADS_DIR is the single correct seam: both consumers
+    (utils.thread_persistence and utils.markdown_export) import it from `config`
+    at call time, so patching the module attribute covers both. Patching
+    thread_persistence._get_threads_dir alone would leave markdown exports still
+    writing to the real home directory.
+    """
+    threads_dir = tmp_path / "vox-threads"
+    monkeypatch.setattr(config, "VOX_THREADS_DIR", threads_dir)
+    return threads_dir
 
 
 def _set_dummy_keys_if_missing():
