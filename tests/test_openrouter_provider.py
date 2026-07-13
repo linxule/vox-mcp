@@ -47,7 +47,7 @@ class TestOpenRouterProvider:
         assert provider.validate_model_name("anthropic/claude-3-opus") is True
         assert provider.validate_model_name("google/any-model-name") is True
         assert provider.validate_model_name("groq/llama-3.1-8b") is True
-        assert provider.validate_model_name("grok-4") is True
+        assert provider.validate_model_name("grok-4.5") is True
 
         # Unknown models without provider prefix are rejected
         assert provider.validate_model_name("gpt-4") is False
@@ -91,9 +91,10 @@ class TestOpenRouterProvider:
         assert provider._resolve_model_name("sonnet4.1") == "sonnet4.1"
         assert provider._resolve_model_name("sonnet4.5") == "sonnet4.5"
         assert provider._resolve_model_name("mistral") == "mistralai/mistral-large-2411"
-        assert provider._resolve_model_name("grok-4") == "x-ai/grok-4"
-        assert provider._resolve_model_name("grok4") == "x-ai/grok-4"
-        assert provider._resolve_model_name("grok") == "x-ai/grok-4"
+        assert provider._resolve_model_name("grok-4.5") == "x-ai/grok-4.5"
+        assert provider._resolve_model_name("grok45") == "x-ai/grok-4.5"
+        assert provider._resolve_model_name("grok") == "x-ai/grok-4.5"
+        assert provider._resolve_model_name("grok43") == "x-ai/grok-4.3"
         assert provider._resolve_model_name("deepseek") == "deepseek/deepseek-r1-0528"
         assert provider._resolve_model_name("r1") == "deepseek/deepseek-r1-0528"
 

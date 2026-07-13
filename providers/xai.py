@@ -54,33 +54,22 @@ class XAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
             return None
 
         if category == ToolModelCategory.EXTENDED_REASONING:
-            # Prefer GROK-4 for advanced reasoning with thinking mode
-            if "grok-4" in allowed_models:
-                return "grok-4"
-            elif "grok-3" in allowed_models:
-                return "grok-3"
-            # Fall back to any available model
-            return allowed_models[0]
+            # Grok 4.5 has configurable reasoning; 4.3 and 4.20-reasoning are the fallbacks
+            preferences = ["grok-4.5", "grok-4.3", "grok-4.20-0309-reasoning"]
 
         elif category == ToolModelCategory.FAST_RESPONSE:
-            # Prefer GROK-3-Fast for speed, then GROK-4
-            if "grok-3-fast" in allowed_models:
-                return "grok-3-fast"
-            elif "grok-4" in allowed_models:
-                return "grok-4"
-            # Fall back to any available model
-            return allowed_models[0]
+            # The non-reasoning 4.20 variant skips the thinking pass entirely
+            preferences = ["grok-4.20-0309-non-reasoning", "grok-4.5"]
 
         else:  # BALANCED or default
-            # Prefer GROK-4 for balanced use (best overall capabilities)
-            if "grok-4" in allowed_models:
-                return "grok-4"
-            elif "grok-3" in allowed_models:
-                return "grok-3"
-            elif "grok-3-fast" in allowed_models:
-                return "grok-3-fast"
-            # Fall back to any available model
-            return allowed_models[0]
+            preferences = ["grok-4.5", "grok-4.3"]
+
+        for model in preferences:
+            if model in allowed_models:
+                return model
+
+        # Fall back to any available model
+        return allowed_models[0]
 
 
 # Load registry data at import time

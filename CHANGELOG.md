@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Breaking
+
+- **The entire xAI provider was non-functional and is now fixed.** Every model ID vox could send to xAI had been retired upstream: `conf/xai_models.json` declared only `grok-4`, `grok-3`, and `grok-3-fast`, none of which xAI serves any more. The catalog is replaced with the current lineup, verified against two independent witnesses — the model table xAI publishes at <https://docs.x.ai/docs/models> (which carries zero occurrences of `grok-3`/`grok-4`, and links a "Model Retirement on May 15" migration guide) and OpenRouter's keyless `/api/v1/models` catalog (which serves `x-ai/grok-4.5`, `x-ai/grok-4.3`, `x-ai/grok-4.20*`, `x-ai/grok-build-0.1`, and no Grok 3 or 4 of any kind).
+
+  New catalog: `grok-4.5` (500K context, flagship, configurable `reasoning_effort`), `grok-4.3` (1M), `grok-4.20-0309-reasoning` (1M), `grok-4.20-0309-non-reasoning` (1M), `grok-4.20-multi-agent-0309` (1M), and `grok-build-0.1` (256K, code-focused).
+
+  **Alias changes.** `grok` still resolves, now to the flagship `grok-4.5`. The aliases `grok4`, `grok-4`, `grok3`, `grok3fast`, and `grokfast` are **removed** rather than repointed: each named a specific retired model, and silently redirecting `grok-4` to `grok-4.5` would be a lie about which model answered. A request for a retired ID now fails loudly at validation instead of being rejected by the xAI API. New shorthands: `grok45`/`grok4.5`, `grok43`/`grok4.3`, `grok-4.20`, `grok-build`, plus xAI's own `grok-latest` (→ `grok-4.3`) and `grok-code-fast-1` (→ `grok-build-0.1`).
+
+- **OpenRouter's `x-ai/grok-4` entry** (equally dead) is replaced by `x-ai/grok-4.5` and `x-ai/grok-4.3`.
+
+### Behavior changes
+
+- **xAI category preferences repointed at live models.** `EXTENDED_REASONING` → `grok-4.5`, `FAST_RESPONSE` → `grok-4.20-0309-non-reasoning` (the only variant that skips the thinking pass), `BALANCED` → `grok-4.5`. Previously every category resolved to a retired ID.
+- **`max_output_tokens` is now omitted for xAI models.** xAI publishes no output-token limit for any Grok model, so the field is left unset rather than guessed. The old values (`131072`) were inherited from the retired models' entries. The field only feeds the capability-rank bonus; it does not shape the request.
+
 ## 0.5.0 — 2026 Anthropic lineup
 
 ### Breaking
