@@ -172,6 +172,71 @@ def test_grok_keeps_max_tokens(mock_openai_class):
     assert kwargs["temperature"] == 0.5
 
 
+@patch("providers.openai_compatible.OpenAI")
+def test_grok_reasoning_model_strips_exactly_the_three_params_xai_rejects(mock_openai_class):
+    """
+    Sourced from docs.x.ai's chat request schema: `frequency_penalty`,
+    `presence_penalty` and `stop` each carry "Not supported by reasoning models."
+    `temperature` (0-2) and `top_p` carry no such note, and `max_tokens` is marked
+    DEPRECATED (in favour of max_completion_tokens) but not rejected — xAI marks
+    rejections explicitly and did not mark that one.
+
+    So the boundary is precise, and this pins it: three params out, the rest through.
+    Grok had NO exclusions declared before, which meant the penalties would have been
+    forwarded to a model that rejects them the moment any caller supplied one.
+    """
+    mock_client = MagicMock()
+    mock_openai_class.return_value = mock_client
+    mock_client.chat.completions.create.return_value = _mock_chat_response("grok-4.5")
+
+    provider = XAIModelProvider("test-key")
+    provider.generate_content(
+        prompt="hi",
+        model_name="grok-4.5",
+        temperature=0.5,
+        max_output_tokens=256,
+        frequency_penalty=0.3,
+        presence_penalty=0.3,
+        stop=["\n"],
+        top_p=0.9,
+    )
+
+    kwargs = _call_kwargs(mock_client)
+    # Rejected by xAI on reasoning models — must never reach the wire.
+    assert "frequency_penalty" not in kwargs
+    assert "presence_penalty" not in kwargs
+    assert "stop" not in kwargs
+    # Accepted — must still be forwarded.
+    assert kwargs["temperature"] == 0.5
+    assert kwargs["top_p"] == 0.9
+    assert kwargs["max_tokens"] == 256
+
+
+@patch("providers.openai_compatible.OpenAI")
+def test_grok_non_reasoning_model_accepts_the_penalties(mock_openai_class):
+    """
+    The restriction is on REASONING models specifically. grok-4.20-0309-non-reasoning
+    is tagged "Reasoning: No" on its docs.x.ai page, so it takes the full sampling
+    set — a blanket per-provider exclusion would have been wrong.
+    """
+    mock_client = MagicMock()
+    mock_openai_class.return_value = mock_client
+    mock_client.chat.completions.create.return_value = _mock_chat_response("grok-4.20-0309-non-reasoning")
+
+    provider = XAIModelProvider("test-key")
+    provider.generate_content(
+        prompt="hi",
+        model_name="grok-4.20-0309-non-reasoning",
+        temperature=0.5,
+        frequency_penalty=0.3,
+        presence_penalty=0.3,
+    )
+
+    kwargs = _call_kwargs(mock_client)
+    assert kwargs["frequency_penalty"] == 0.3
+    assert kwargs["presence_penalty"] == 0.3
+
+
 # --------------------------------------------------------------------------- #
 # The dead branch that would have raised if anything reached it.
 # --------------------------------------------------------------------------- #

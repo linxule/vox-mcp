@@ -28,7 +28,12 @@
       "supports_images": true,
       "supports_temperature": true,
       "allow_code_generation": true,
-      "max_image_size_mb": 20.0
+      "max_image_size_mb": 20.0,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ]
     },
     {
       "model_name": "grok-4.3",
@@ -47,7 +52,12 @@
       "supports_json_mode": true,
       "supports_images": true,
       "supports_temperature": true,
-      "max_image_size_mb": 20.0
+      "max_image_size_mb": 20.0,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ]
     },
     {
       "model_name": "grok-4.20-0309-reasoning",
@@ -68,7 +78,12 @@
       "supports_json_mode": true,
       "supports_images": true,
       "supports_temperature": true,
-      "max_image_size_mb": 20.0
+      "max_image_size_mb": 20.0,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ]
     },
     {
       "model_name": "grok-4.20-0309-non-reasoning",
@@ -87,7 +102,8 @@
       "supports_json_mode": true,
       "supports_images": true,
       "supports_temperature": true,
-      "max_image_size_mb": 20.0
+      "max_image_size_mb": 20.0,
+      "unsupported_params": []
     },
     {
       "model_name": "grok-4.20-multi-agent-0309",
@@ -106,7 +122,12 @@
       "supports_json_mode": true,
       "supports_images": true,
       "supports_temperature": true,
-      "max_image_size_mb": 20.0
+      "max_image_size_mb": 20.0,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ]
     },
     {
       "model_name": "grok-build-0.1",
@@ -126,7 +147,12 @@
       "supports_images": true,
       "supports_temperature": true,
       "allow_code_generation": true,
-      "max_image_size_mb": 20.0
+      "max_image_size_mb": 20.0,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ]
     }
   ]
 }

@@ -24,9 +24,7 @@
         "max_tokens",
         "top_p",
         "frequency_penalty",
-        "presence_penalty",
-        "stop",
-        "stream"
+        "presence_penalty"
       ]
     },
     {
@@ -49,9 +47,7 @@
         "max_tokens",
         "top_p",
         "frequency_penalty",
-        "presence_penalty",
-        "stop",
-        "stream"
+        "presence_penalty"
       ]
     },
     {
@@ -75,9 +71,7 @@
         "max_tokens",
         "top_p",
         "frequency_penalty",
-        "presence_penalty",
-        "stop",
-        "stream"
+        "presence_penalty"
       ]
     },
     {
@@ -100,9 +94,7 @@
         "max_tokens",
         "top_p",
         "frequency_penalty",
-        "presence_penalty",
-        "stop",
-        "stream"
+        "presence_penalty"
       ]
     },
     {
