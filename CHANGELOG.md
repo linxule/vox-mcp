@@ -8,7 +8,12 @@
 
   New catalog: `grok-4.5` (500K context, flagship, configurable `reasoning_effort`), `grok-4.3` (1M), `grok-4.20-0309-reasoning` (1M), `grok-4.20-0309-non-reasoning` (1M), `grok-4.20-multi-agent-0309` (1M), and `grok-build-0.1` (256K, code-focused).
 
-  **Alias changes.** `grok` still resolves, now to the flagship `grok-4.5`. The aliases `grok4`, `grok-4`, `grok3`, `grok3fast`, and `grokfast` are **removed** rather than repointed: each named a specific retired model, and silently redirecting `grok-4` to `grok-4.5` would be a lie about which model answered. A request for a retired ID now fails loudly at validation instead of being rejected by the xAI API. New shorthands: `grok45`/`grok4.5`, `grok43`/`grok4.3`, `grok-4.20`, `grok-build`, plus xAI's own `grok-latest` (→ `grok-4.3`) and `grok-code-fast-1` (→ `grok-build-0.1`).
+  **Alias changes.** `grok` still resolves, now to the flagship `grok-4.5`. The aliases `grok4`, `grok-4`, `grok3`, `grok3fast`, and `grokfast` are **removed** rather than repointed: each named a specific retired model, and silently redirecting `grok-4` to `grok-4.5` would be a lie about which model answered. A request for a retired ID now fails loudly at validation instead of being rejected by the xAI API. New shorthands are short forms of an ID that exists: `grok45`/`grok4.5`, `grok43`/`grok4.3`, `grok-4.20`, `grok-build`.
+
+  Two families of alias are deliberately **not** carried, even though xAI's own model table attests both:
+
+  - **Cross-model aliases** (`grok-code-fast-1`, `grok-code-fast` → `grok-build-0.1`). These name a real, historically distinct model. xAI happens to resolve them onto Grok Build today, but encoding that equivalence here means vox asserts a mapping it does not control: if xAI un-aliases them, vox keeps silently substituting. A wrong ID that errors loudly teaches the caller; a silent substitution returns plausible output from the wrong model and nobody finds out.
+  - **Moving pointers** (`grok-latest`, `grok-4.5-latest`, `grok-build-latest`). A `*-latest` name means something different upstream over time — `grok-latest` currently resolves to `grok-4.3`, not the flagship. Baking a moving pointer into a static registry is precisely the failure this release is fixing.
 
 - **OpenRouter's `x-ai/grok-4` entry** (equally dead) is replaced by `x-ai/grok-4.5` and `x-ai/grok-4.3`.
 

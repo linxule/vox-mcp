@@ -14,8 +14,7 @@
       "aliases": [
         "grok",
         "grok4.5",
-        "grok45",
-        "grok-4.5-latest"
+        "grok45"
       ],
       "intelligence_score": 18,
       "description": "Grok 4.5 - X.AI's flagship: agentic tool calling, vision, configurable reasoning (xAI recommends it for code and everything else)",
@@ -36,8 +35,7 @@
       "friendly_name": "X.AI (Grok 4.3)",
       "aliases": [
         "grok4.3",
-        "grok43",
-        "grok-latest"
+        "grok43"
       ],
       "intelligence_score": 17,
       "description": "Grok 4.3 - Previous flagship, 1M context with reasoning and vision",
@@ -115,9 +113,7 @@
       "friendly_name": "X.AI (Grok Build 0.1)",
       "aliases": [
         "grok-build",
-        "grokbuild",
-        "grok-code-fast",
-        "grok-code-fast-1"
+        "grokbuild"
       ],
       "intelligence_score": 15,
       "description": "Grok Build 0.1 - X.AI's code-focused model, 256K context",
