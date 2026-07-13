@@ -107,8 +107,14 @@ class TestConversationMemory:
         success = add_turn(test_uuid, "user", "Hello there")
 
         assert success is True
-        # Verify Redis get and setex were called
-        mock_client.get.assert_called_once()
+        # The thread is read once by add_turn itself, and the persistence layer may
+        # read it again to enrich a retroactively-created JSONL header. Assert the
+        # contract — the right thread was fetched, and exactly one write happened —
+        # rather than pinning an incidental number of reads. The old
+        # `get.assert_called_once()` only held when a leftover JSONL from a previous
+        # run suppressed the retroactive path, so it passed on dev machines and
+        # failed on clean CI.
+        mock_client.get.assert_any_call(f"thread:{test_uuid}")
         mock_client.setex.assert_called_once()
 
     @patch("utils.conversation_memory.get_storage")
