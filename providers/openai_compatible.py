@@ -549,17 +549,17 @@ class OpenAICompatibleProvider(ModelProvider):
             logging.debug(f"Falling back to generic capabilities for {model_name}: {exc}")
             capabilities = None
 
-        # Whether the model accepts sampling parameters at all. Reasoning models
-        # (o3/o4 and equivalents) reject temperature, top_p, penalties AND
-        # max_tokens on chat/completions — that gate is keyed on this flag.
-        model_supports_sampling = bool(capabilities.supports_temperature) if capabilities else True
+        # Keep the historical max_tokens behavior for fixed-temperature models,
+        # but do not use temperature support to decide whether unrelated request
+        # parameters are accepted.
+        model_accepts_max_tokens = bool(capabilities.supports_temperature) if capabilities else True
 
         # Resolve the temperature to actually send. ``None`` means omit it (the
         # caller did not specify one, or the model does not accept it) so the
         # provider applies its own server-side default — a pure passthrough.
-        if temperature is None or not model_supports_sampling:
-            effective_temperature = None
-        elif capabilities:
+        if capabilities:
+            effective_temperature = capabilities.get_effective_temperature(temperature)
+        elif temperature is not None:
             effective_temperature = capabilities.get_effective_temperature(temperature)
             if effective_temperature is not None and effective_temperature != temperature:
                 logging.debug(
@@ -623,7 +623,7 @@ class OpenAICompatibleProvider(ModelProvider):
         # Add max tokens if specified and the model supports sampling params.
         # O3/O4 reasoning models that don't support temperature also don't
         # support max_tokens on chat/completions.
-        if max_output_tokens and model_supports_sampling:
+        if max_output_tokens and model_accepts_max_tokens:
             completion_params["max_tokens"] = max_output_tokens
 
         # Extract thinking_mode before processing remaining kwargs
@@ -632,13 +632,17 @@ class OpenAICompatibleProvider(ModelProvider):
         # Extract extra_body for provider-specific parameters (e.g., Moonshot thinking control)
         extra_body = kwargs.pop("extra_body", None)
 
-        # Add any additional OpenAI-specific parameters
-        # Use capabilities to filter parameters for reasoning models
+        # Add any additional OpenAI-specific parameters. Explicit per-model
+        # exclusions take precedence; fixed-temperature models retain the legacy
+        # reasoning-model exclusions until their registries are sourced per field.
+        unsupported_params = set(capabilities.unsupported_params) if capabilities else set()
+        if capabilities and not capabilities.supports_temperature:
+            unsupported_params.update({"top_p", "frequency_penalty", "presence_penalty", "stop", "stream"})
+
         for key, value in kwargs.items():
             if key in ["top_p", "frequency_penalty", "presence_penalty", "seed", "stop", "stream"]:
-                # Reasoning models (those that don't support sampling) also don't support these parameters
-                if not model_supports_sampling and key in ["top_p", "frequency_penalty", "presence_penalty", "stream"]:
-                    continue  # Skip unsupported parameters for reasoning models
+                if key in unsupported_params:
+                    continue
                 completion_params[key] = value
 
         # Pass extra_body through to the API client (used by Moonshot for thinking control)

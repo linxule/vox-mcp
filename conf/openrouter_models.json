@@ -228,14 +228,14 @@
       "temperature_constraint": "fixed"
     },
     {
-      "model_name": "mistralai/mistral-large-2411",
-      "friendly_name": "OpenRouter (mistralai/mistral-large-2411)",
+      "model_name": "mistralai/mistral-large-2512",
+      "friendly_name": "OpenRouter (mistralai/mistral-large-2512)",
       "aliases": [
         "mistral"
       ],
       "intelligence_score": 15,
-      "description": "Mistral Large via OpenRouter",
-      "context_window": 128000,
+      "description": "Mistral Large 2512 via OpenRouter",
+      "context_window": 262144,
       "max_output_tokens": 32768,
       "supports_extended_thinking": false,
       "supports_system_prompts": true,
