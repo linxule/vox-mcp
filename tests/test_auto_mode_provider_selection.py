@@ -325,7 +325,7 @@ class TestAutoModeProviderSelection:
                 ("mini", ProviderType.OPENAI, "gpt-5-mini"),  # "mini" now resolves to gpt-5-mini
                 ("o3mini", ProviderType.OPENAI, "o3-mini"),
                 ("grok", ProviderType.XAI, "grok-4.5"),
-                ("grok-4.20", ProviderType.XAI, "grok-4.20-0309-reasoning"),
+                ("grok4.3", ProviderType.XAI, "grok-4.3"),
             ]
 
             for alias, expected_provider_type, expected_resolved_name in test_cases:

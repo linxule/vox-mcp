@@ -213,24 +213,36 @@ def test_grok_reasoning_model_strips_exactly_the_three_params_xai_rejects(mock_o
 
 
 @patch("providers.openai_compatible.OpenAI")
-def test_grok_non_reasoning_model_accepts_the_penalties(mock_openai_class):
+def test_a_non_reasoning_xai_model_would_accept_the_penalties(mock_openai_class):
     """
-    The restriction is on REASONING models specifically. grok-4.20-0309-non-reasoning
-    is tagged "Reasoning: No" on its docs.x.ai page, so it takes the full sampling
-    set — a blanket per-provider exclusion would have been wrong.
+    xAI's restriction is on REASONING models specifically, so the exclusion must be
+    per-model and not a blanket per-provider rule.
+
+    This model is SYNTHETIC on purpose. The catalogue's only non-reasoning Grok was
+    grok-4.20-0309-non-reasoning, which went with the rest of the 4.20 line, so there
+    is no real one left to test against. The distinction still has to be pinned:
+    without it, someone "simplifying" could push the exclusions up to the provider
+    and nothing would catch it — until xAI ships another non-reasoning model and vox
+    quietly strips penalties it accepts.
     """
     mock_client = MagicMock()
     mock_openai_class.return_value = mock_client
-    mock_client.chat.completions.create.return_value = _mock_chat_response("grok-4.20-0309-non-reasoning")
+    mock_client.chat.completions.create.return_value = _mock_chat_response("grok-nonreasoning-synthetic")
 
     provider = XAIModelProvider("test-key")
-    provider.generate_content(
-        prompt="hi",
-        model_name="grok-4.20-0309-non-reasoning",
-        temperature=0.5,
-        frequency_penalty=0.3,
-        presence_penalty=0.3,
-    )
+    caps = _caps("grok-nonreasoning-synthetic", supports_temperature=True, unsupported_params=[])
+    with (
+        patch.object(provider, "get_capabilities", return_value=caps),
+        patch.object(provider, "validate_model_name", return_value=True),
+        patch.object(provider, "_resolve_model_name", return_value="grok-nonreasoning-synthetic"),
+    ):
+        provider.generate_content(
+            prompt="hi",
+            model_name="grok-nonreasoning-synthetic",
+            temperature=0.5,
+            frequency_penalty=0.3,
+            presence_penalty=0.3,
+        )
 
     kwargs = _call_kwargs(mock_client)
     assert kwargs["frequency_penalty"] == 0.3
