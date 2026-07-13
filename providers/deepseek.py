@@ -108,8 +108,9 @@ class DeepSeekProvider(OpenAICompatibleProvider):
 
         # Clamp only an explicitly-supplied temperature. When the caller omits it
         # (None) we pass None through so the parent omits it on the wire and the
-        # API applies its own default (deepseek-reasoner ignores temperature; V3
-        # chat defaults server-side).
+        # API applies its own default, rather than us inventing one. V4 Pro takes
+        # temperature in [0.0, 2.0]; the constraint on the model, not this comment,
+        # is the authority for the range.
         if temperature is not None and capabilities.temperature_constraint:
             temperature = capabilities.temperature_constraint.get_corrected_value(temperature)
 
