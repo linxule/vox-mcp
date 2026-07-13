@@ -53,7 +53,14 @@ class ModelCapabilities:
     supports_images: bool = False
     supports_json_mode: bool = False
     supports_temperature: bool = True
-    unsupported_params: list[str] = field(default_factory=list)
+    # `None` means NOT DECLARED; `[]` means DECLARED as "accepts everything else".
+    # The two are different claims and the default must keep them apart, because the
+    # integrity gate enforces authorship discipline -- a model that rejects
+    # temperature has to say what ELSE it rejects, and "[] by default" would make
+    # every silent omission indistinguishable from a considered empty answer.
+    # At runtime both behave identically (`or []` at the one read site), so this
+    # costs nothing except the ability to tell "thought about it" from "forgot".
+    unsupported_params: list[str] | None = None
     use_openai_response_api: bool = False
     default_reasoning_effort: str | None = None
     allow_code_generation: bool = (

@@ -576,7 +576,9 @@ class OpenAICompatibleProvider(ModelProvider):
         # top_p, or a penalty. Deriving one from the other is how o3 came to have its
         # max_tokens silently dropped: the parameter was gated on an unrelated flag.
         # Any model that genuinely rejects a parameter must SAY so, in its own entry.
-        unsupported_params = set(capabilities.unsupported_params) if capabilities else set()
+        # `or []`: an undeclared list (None) and an explicitly-empty one behave the
+        # same on the wire. The distinction exists for the integrity gate, not here.
+        unsupported_params = set(capabilities.unsupported_params or []) if capabilities else set()
 
         model_accepts_max_tokens = "max_tokens" not in unsupported_params
 
