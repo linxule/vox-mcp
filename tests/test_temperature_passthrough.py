@@ -34,7 +34,7 @@ def _mock_anthropic_response():
     return resp
 
 
-def _mock_chat_response(model="grok-4"):
+def _mock_chat_response(model="grok-4.5"):
     resp = MagicMock()
     resp.choices = [MagicMock()]
     resp.choices[0].message.content = "ok"
@@ -63,12 +63,12 @@ def _call_kwargs(mock_client):
 def test_grok_omits_temperature_when_unset_but_keeps_max_tokens(mock_openai_class):
     mock_client = MagicMock()
     mock_openai_class.return_value = mock_client
-    mock_client.chat.completions.create.return_value = _mock_chat_response("grok-4")
+    mock_client.chat.completions.create.return_value = _mock_chat_response("grok-4.5")
 
     provider = XAIModelProvider("test-key")
     provider.generate_content(
         prompt="hi",
-        model_name="grok-4",
+        model_name="grok-4.5",
         temperature=None,  # caller did not specify
         max_output_tokens=256,
     )
@@ -85,10 +85,10 @@ def test_grok_omits_temperature_when_unset_but_keeps_max_tokens(mock_openai_clas
 def test_grok_forwards_explicit_temperature(mock_openai_class):
     mock_client = MagicMock()
     mock_openai_class.return_value = mock_client
-    mock_client.chat.completions.create.return_value = _mock_chat_response("grok-4")
+    mock_client.chat.completions.create.return_value = _mock_chat_response("grok-4.5")
 
     provider = XAIModelProvider("test-key")
-    provider.generate_content(prompt="hi", model_name="grok-4", temperature=0.5)
+    provider.generate_content(prompt="hi", model_name="grok-4.5", temperature=0.5)
 
     kwargs = _call_kwargs(mock_client)
     assert kwargs["temperature"] == 0.5

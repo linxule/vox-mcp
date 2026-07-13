@@ -173,17 +173,35 @@
       "supports_temperature": true
     },
     {
-      "model_name": "x-ai/grok-4",
-      "friendly_name": "OpenRouter (x-ai/grok-4)",
+      "model_name": "x-ai/grok-4.5",
+      "friendly_name": "OpenRouter (x-ai/grok-4.5)",
       "aliases": [
-        "grok-4",
-        "grok4",
-        "grok"
+        "grok",
+        "grok-4.5",
+        "grok4.5",
+        "grok45"
+      ],
+      "intelligence_score": 18,
+      "description": "Grok 4.5 via OpenRouter - X.AI's flagship",
+      "context_window": 500000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true
+    },
+    {
+      "model_name": "x-ai/grok-4.3",
+      "friendly_name": "OpenRouter (x-ai/grok-4.3)",
+      "aliases": [
+        "grok-4.3",
+        "grok4.3",
+        "grok43"
       ],
       "intelligence_score": 17,
-      "description": "Grok 4 via OpenRouter",
-      "context_window": 256000,
-      "max_output_tokens": 131072,
+      "description": "Grok 4.3 via OpenRouter - 1M context",
+      "context_window": 1000000,
       "supports_extended_thinking": true,
       "supports_system_prompts": true,
       "supports_streaming": true,
