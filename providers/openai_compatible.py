@@ -18,6 +18,26 @@ from .shared import (
     ProviderType,
 )
 
+# OpenAI-style sampling parameters a caller may supply via **kwargs and that we
+# forward to the provider verbatim. A model opts OUT of any of these by naming it
+# in its own `unsupported_params` (conf/*_models.json) — support is never inferred
+# from an unrelated capability flag.
+#
+# `max_tokens` is deliberately in this set even though it is not passed through
+# kwargs: it is the one parameter whose exclusion used to be derived from
+# supports_temperature, and naming it here keeps every exclusion declared in one
+# vocabulary rather than split across a flag and a list.
+SAMPLING_PASSTHROUGH_PARAMS = frozenset(
+    {
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "seed",
+        "stop",
+        "stream",
+    }
+)
+
 
 class OpenAICompatibleProvider(ModelProvider):
     """Shared implementation for OpenAI API lookalikes.
@@ -549,23 +569,31 @@ class OpenAICompatibleProvider(ModelProvider):
             logging.debug(f"Falling back to generic capabilities for {model_name}: {exc}")
             capabilities = None
 
-        # Keep the historical max_tokens behavior for fixed-temperature models,
-        # but do not use temperature support to decide whether unrelated request
-        # parameters are accepted.
-        model_accepts_max_tokens = bool(capabilities.supports_temperature) if capabilities else True
+        # Which request parameters this model cannot accept. Declared per model in
+        # conf/*_models.json — never inferred from supports_temperature.
+        #
+        # Temperature support says nothing about whether a model accepts max_tokens,
+        # top_p, or a penalty. Deriving one from the other is how o3 came to have its
+        # max_tokens silently dropped: the parameter was gated on an unrelated flag.
+        # Any model that genuinely rejects a parameter must SAY so, in its own entry.
+        unsupported_params = set(capabilities.unsupported_params) if capabilities else set()
+
+        model_accepts_max_tokens = "max_tokens" not in unsupported_params
 
         # Resolve the temperature to actually send. ``None`` means omit it (the
         # caller did not specify one, or the model does not accept it) so the
         # provider applies its own server-side default — a pure passthrough.
         if capabilities:
             effective_temperature = capabilities.get_effective_temperature(temperature)
-        elif temperature is not None:
-            effective_temperature = capabilities.get_effective_temperature(temperature)
-            if effective_temperature is not None and effective_temperature != temperature:
+            if temperature is not None and effective_temperature is not None and effective_temperature != temperature:
                 logging.debug(
                     f"Adjusting temperature from {temperature} to {effective_temperature} for model {model_name}"
                 )
         else:
+            # No capability metadata to consult: pass the caller's temperature through
+            # untouched. (The previous code called capabilities.get_effective_temperature
+            # in this branch — where capabilities is None by construction — so it would
+            # have raised AttributeError had anything ever reached it.)
             effective_temperature = temperature
 
         # Only validate an explicitly-resolved temperature.
@@ -632,17 +660,11 @@ class OpenAICompatibleProvider(ModelProvider):
         # Extract extra_body for provider-specific parameters (e.g., Moonshot thinking control)
         extra_body = kwargs.pop("extra_body", None)
 
-        # Add any additional OpenAI-specific parameters. Explicit per-model
-        # exclusions take precedence; fixed-temperature models retain the legacy
-        # reasoning-model exclusions until their registries are sourced per field.
-        unsupported_params = set(capabilities.unsupported_params) if capabilities else set()
-        if capabilities and not capabilities.supports_temperature:
-            unsupported_params.update({"top_p", "frequency_penalty", "presence_penalty", "stop", "stream"})
-
+        # Forward the OpenAI-style sampling parameters the caller supplied, minus the
+        # ones this model declares it cannot accept. `unsupported_params` is resolved
+        # above, from the model's own registry entry — not from supports_temperature.
         for key, value in kwargs.items():
-            if key in ["top_p", "frequency_penalty", "presence_penalty", "seed", "stop", "stream"]:
-                if key in unsupported_params:
-                    continue
+            if key in SAMPLING_PASSTHROUGH_PARAMS and key not in unsupported_params:
                 completion_params[key] = value
 
         # Pass extra_body through to the API client (used by Moonshot for thinking control)

@@ -83,7 +83,13 @@
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_temperature": false,
-      "temperature_constraint": "fixed"
+      "temperature_constraint": "fixed",
+      "unsupported_params": [
+        "max_tokens",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty"
+      ]
     },
     {
       "model_name": "openai/o3-mini",
@@ -101,7 +107,13 @@
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_temperature": false,
-      "temperature_constraint": "fixed"
+      "temperature_constraint": "fixed",
+      "unsupported_params": [
+        "max_tokens",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty"
+      ]
     },
     {
       "model_name": "openai/o4-mini",
@@ -119,7 +131,13 @@
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_temperature": false,
-      "temperature_constraint": "fixed"
+      "temperature_constraint": "fixed",
+      "unsupported_params": [
+        "max_tokens",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty"
+      ]
     },
     {
       "model_name": "openai/gpt-4.1",
@@ -225,7 +243,11 @@
       "supports_streaming": true,
       "supports_function_calling": false,
       "supports_temperature": false,
-      "temperature_constraint": "fixed"
+      "temperature_constraint": "fixed",
+      "unsupported_params": [
+        "stop",
+        "presence_penalty"
+      ]
     },
     {
       "model_name": "mistralai/mistral-large-2512",
