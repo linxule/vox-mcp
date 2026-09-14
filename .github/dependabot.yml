@@ -2,6 +2,8 @@ version: 2
 updates:
   # Python dependencies (uv / pyproject) — single grouped PR to reduce noise
   - package-ecosystem: "uv"
+    # Preserve supported SDK ranges; major migrations need deliberate validation.
+    versioning-strategy: "lockfile-only"
     directory: "/"
     schedule:
       interval: "weekly"
