@@ -169,6 +169,13 @@ See `.env.example` for the full reference.
 
 ## Development
 
+Dependencies are maintained in `pyproject.toml` and `uv.lock`; Dependabot updates
+both through its `uv` integration. CI checks the lockfile, runs the offline test
+suite on Python 3.10 and 3.13, and audits locked packages with `pip-audit`.
+The supported SDK lines are MCP 1.x, OpenAI 2.x, and Anthropic 0.x.
+MCP SDK 2 requires a separate server API migration; provider major upgrades
+are kept separate from dependency maintenance.
+
 ```bash
 uv sync
 uv run python -c "import server"   # smoke test
