@@ -28,8 +28,8 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Sync dependencies (frozen lockfile)
-        run: uv sync --frozen --dev --python ${{ matrix.python-version }}
+      - name: Sync dependencies (validate lockfile)
+        run: uv sync --locked --dev --python ${{ matrix.python-version }}
 
       - name: Ruff lint
         run: uv run ruff check
@@ -39,3 +39,8 @@ jobs:
 
       - name: Unit tests
         run: uv run pytest tests/ -q -m "not integration"
+
+      - name: Audit locked dependencies
+        run: |
+          uv export --locked --no-emit-project --format requirements-txt -o /tmp/requirements-audit.txt > /dev/null
+          uv run pip-audit -r /tmp/requirements-audit.txt --disable-pip --no-deps

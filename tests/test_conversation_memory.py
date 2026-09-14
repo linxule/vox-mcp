@@ -5,6 +5,7 @@ Tests the in-memory conversation persistence for multi-turn
 discussions in stateless MCP environments.
 """
 
+import json
 import os
 from unittest.mock import Mock, patch
 
@@ -86,7 +87,7 @@ class TestConversationMemory:
         assert context is None
 
     @patch("utils.conversation_memory.get_storage")
-    def test_add_turn_success(self, mock_storage):
+    def test_add_turn_success(self, mock_storage, isolate_vox_threads_dir):
         """Test adding a turn to existing thread"""
         mock_client = Mock()
         mock_storage.return_value = mock_client
@@ -107,15 +108,21 @@ class TestConversationMemory:
         success = add_turn(test_uuid, "user", "Hello there")
 
         assert success is True
-        # The thread is read once by add_turn itself, and the persistence layer may
-        # read it again to enrich a retroactively-created JSONL header. Assert the
-        # contract — the right thread was fetched, and exactly one write happened —
-        # rather than pinning an incidental number of reads. The old
-        # `get.assert_called_once()` only held when a leftover JSONL from a previous
-        # run suppressed the retroactive path, so it passed on dev machines and
-        # failed on clean CI.
-        mock_client.get.assert_any_call(f"thread:{test_uuid}")
+        # A fresh disk store requires another read to enrich the JSONL header.
+        assert mock_client.get.call_count == 2
+        mock_client.get.assert_called_with(f"thread:{test_uuid}")
         mock_client.setex.assert_called_once()
+        key, ttl, payload = mock_client.setex.call_args.args
+        assert key == f"thread:{test_uuid}"
+        assert ttl == CONVERSATION_TIMEOUT_SECONDS
+        saved = ThreadContext.model_validate_json(payload)
+        assert [(turn.role, turn.content) for turn in saved.turns] == [("user", "Hello there")]
+        files = list(isolate_vox_threads_dir.glob("*.jsonl"))
+        assert len(files) == 1
+        header, turn = [json.loads(line) for line in files[0].read_text().splitlines()]
+        assert header["thread_id"] == test_uuid
+        assert header["initial_context"] == {"prompt": "test"}
+        assert (turn["role"], turn["content"]) == ("user", "Hello there")
 
     @patch("utils.conversation_memory.get_storage")
     def test_add_turn_max_limit(self, mock_storage):
