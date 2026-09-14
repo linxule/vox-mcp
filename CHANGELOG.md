@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 — 2026-09-14
 
 ### Breaking
 
@@ -26,8 +26,16 @@
 
 ### Behavior changes
 
-- **xAI category preferences repointed at live models.** `EXTENDED_REASONING` → `grok-4.5`, `FAST_RESPONSE` → `grok-4.20-0309-non-reasoning` (the only variant that skips the thinking pass), `BALANCED` → `grok-4.5`. Previously every category resolved to a retired ID.
+- **xAI category preferences repointed at live models.** `EXTENDED_REASONING` → `grok-4.5`, `FAST_RESPONSE` → `grok-4.5`, `BALANCED` → `grok-4.5`. Previously every category resolved to a retired ID.
 - **`max_output_tokens` is now omitted for xAI models.** xAI publishes no output-token limit for any Grok model, so the field is left unset rather than guessed. The old values (`131072`) were inherited from the retired models' entries. The field only feeds the capability-rank bonus; it does not shape the request.
+
+### Fixes and maintenance
+
+- Corrected model context/output metadata and the OpenRouter Mistral alias. GPT-5.1 and its Codex variants use a 400,000-token context window; the Mistral alias points to `mistralai/mistral-large-2512`.
+- Request parameter exclusions are now explicit model capabilities instead of inferred from temperature support. The offline integrity suite checks provider registrations, aliases, model capacities, and category preferences.
+- Tests use temporary conversation stores and verify persisted headers/turns, preventing writes into the developer's real `~/.vox` history.
+- Updated locked dependencies to address MCP, cryptography, and pyasn1 advisories. Supported SDK lines remain MCP 1.x, OpenAI 2.x, and Anthropic 0.x; MCP 2 requires a separate server API migration.
+- Dependabot maintains the uv lock within those supported ranges. CI validates the lock, tests Python 3.10/3.13, and audits locked dependencies.
 
 ## 0.5.0 — 2026 Anthropic lineup
 

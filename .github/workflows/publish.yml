@@ -1,0 +1,79 @@
+name: Publish release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing immutable release tag (for example v0.6.0)
+        required: true
+        type: string
+      publish:
+        description: Publish the validated distribution to PyPI
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.13'
+      - name: Validate release identity
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          uv run --no-project python - <<'PY'
+          import json, os, re, subprocess, tomllib
+          from pathlib import Path
+          tag = os.environ['RELEASE_TAG']
+          assert re.fullmatch(r'v\d+\.\d+\.\d+', tag), 'Expected a stable version tag'
+          assert subprocess.check_output(['git', 'rev-parse', f'refs/tags/{tag}^{{commit}}'], text=True).strip() == subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          project = tomllib.loads(Path('pyproject.toml').read_text())['project']
+          server = json.loads(Path('server.json').read_text())
+          assert project['name'] == 'vox-mcp'
+          assert project['version'] == server['version'] == server['packages'][0]['version'] == tag[1:]
+          assert server['name'] == 'io.github.linxule/vox-mcp'
+          PY
+      - name: Verify and build
+        run: |
+          uv sync --locked --dev
+          uv run ruff check
+          uv run ruff format --check
+          uv run pytest tests/ -q -m 'not integration'
+          uv export --locked --no-emit-project --format requirements-txt -o /tmp/release-audit.txt > /dev/null
+          uv run pip-audit -r /tmp/release-audit.txt --disable-pip --no-deps
+          uv build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: distribution
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    if: ${{ inputs.publish }}
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: distribution
+          path: dist
+      - uses: astral-sh/setup-uv@v7
+      - name: Publish validated artifacts using PyPI trusted publishing
+        run: uv publish --trusted-publishing always --check-url https://pypi.org/simple/ dist/*
