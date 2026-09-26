@@ -11,6 +11,7 @@ Configuration values can be overridden by environment variables where appropriat
 import importlib.metadata
 from pathlib import Path
 
+from model_settings import resolve_default_model
 from utils.env import get_env
 
 # Version and metadata
@@ -23,10 +24,10 @@ except importlib.metadata.PackageNotFoundError:
 # Model configuration
 # DEFAULT_MODEL: The default model used for all AI operations
 # Can be overridden by setting DEFAULT_MODEL environment variable
-# Special value "auto" means Claude should pick the best model for each task
-DEFAULT_MODEL = get_env("DEFAULT_MODEL", "auto") or "auto"
+# Special value "auto" means the calling agent should pick the best model for each task
+DEFAULT_MODEL, DEFAULT_MODEL_SOURCE = resolve_default_model(get_env("DEFAULT_MODEL"))
 
-# Auto mode detection - when DEFAULT_MODEL is "auto", Claude picks the model
+# Auto mode detection - when DEFAULT_MODEL is "auto", the calling agent picks the model
 IS_AUTO_MODE = DEFAULT_MODEL.lower() == "auto"
 
 # Each provider (gemini.py, openai.py, xai.py, openrouter.py, custom.py)

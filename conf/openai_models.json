@@ -7,6 +7,117 @@
   },
   "models": [
     {
+      "model_name": "gpt-6-astra",
+      "friendly_name": "OpenAI (GPT-6 Astra)",
+      "aliases": [
+        "gpt6-astra"
+      ],
+      "intelligence_score": 20,
+      "description": "Highest capability for complex reasoning and coding",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "max"
+      },
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 50.0,
+      "supports_json_mode": true,
+      "supports_temperature": false,
+      "unsupported_params": [
+        "max_tokens",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "seed",
+        "stop"
+      ],
+      "use_openai_response_api": true,
+      "allow_code_generation": true
+    },
+    {
+      "model_name": "gpt-6-sol",
+      "friendly_name": "OpenAI (GPT-6 Sol)",
+      "aliases": [
+        "gpt6-sol"
+      ],
+      "intelligence_score": 19,
+      "description": "Balanced capability for demanding coding and agentic work",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "max"
+      },
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 50.0,
+      "supports_json_mode": true,
+      "supports_temperature": false,
+      "unsupported_params": [
+        "max_tokens",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "seed",
+        "stop"
+      ],
+      "use_openai_response_api": true,
+      "allow_code_generation": true
+    },
+    {
+      "model_name": "gpt-6-luna",
+      "friendly_name": "OpenAI (GPT-6 Luna)",
+      "aliases": [
+        "gpt6-luna"
+      ],
+      "intelligence_score": 17,
+      "description": "Efficient focused and high-volume work",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "max"
+      },
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "max_image_size_mb": 50.0,
+      "supports_json_mode": true,
+      "supports_temperature": false,
+      "unsupported_params": [
+        "max_tokens",
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "seed",
+        "stop"
+      ],
+      "use_openai_response_api": true,
+      "allow_code_generation": true
+    },
+    {
       "model_name": "o3",
       "friendly_name": "OpenAI (O3)",
       "aliases": [],

@@ -162,9 +162,22 @@ class CustomModelRegistryBase:
             entry["temperature_constraint"] = TemperatureConstraint.create("range")
 
         thinking_hint = entry.get("thinking_constraint")
+        effort_map = entry.pop("effort_map", None)
+        default_thinking_mode = entry.pop("default_thinking_mode", "medium")
+        if effort_map is not None:
+            if thinking_hint != "effort_level" or not isinstance(effort_map, dict):
+                raise ValueError("effort_map requires an effort_level thinking constraint and a mapping")
+            from ..shared.thinking import VALID_THINKING_MODES
+
+            if set(effort_map) != VALID_THINKING_MODES or any(
+                not isinstance(value, str) or not value for value in effort_map.values()
+            ):
+                raise ValueError("effort_map must map every thinking mode to a nonempty effort string")
         if isinstance(thinking_hint, str):
             max_thinking = entry.get("max_thinking_tokens", 0)
-            entry["thinking_constraint"] = ThinkingConstraint.create(thinking_hint, max_thinking)
+            entry["thinking_constraint"] = ThinkingConstraint.create(
+                thinking_hint, max_thinking, effort_map=effort_map, default_mode=default_thinking_mode
+            )
         elif thinking_hint is None and entry.get("supports_extended_thinking"):
             # Auto-infer: models with thinking support get AlwaysOn by default
             from ..shared.thinking import AlwaysOnThinkingConstraint

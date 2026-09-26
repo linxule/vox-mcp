@@ -54,18 +54,15 @@ class XAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider):
             return None
 
         if category == ToolModelCategory.EXTENDED_REASONING:
-            # Grok 4.5 has configurable reasoning; 4.3 is the 1M-context fallback
-            preferences = ["grok-4.5", "grok-4.3"]
+            # Prefer Grok 4.6; keep the other explicit choices as fallbacks
+            preferences = ["grok-4.6", "grok-4.7", "grok-4.5", "grok-4.3"]
 
         elif category == ToolModelCategory.FAST_RESPONSE:
-            # No non-reasoning Grok remains in the catalogue: the only one was
-            # grok-4.20-0309-non-reasoning, dropped with the rest of the 4.20 line.
-            # xAI calls 4.5 "the most intelligent and fastest model we've built",
-            # so it carries this category too rather than leaving it unserved.
-            preferences = ["grok-4.5"]
+            # The preferred general-purpose model also serves fast requests.
+            preferences = ["grok-4.6", "grok-4.7", "grok-4.5"]
 
         else:  # BALANCED or default
-            preferences = ["grok-4.5", "grok-4.3"]
+            preferences = ["grok-4.6", "grok-4.7", "grok-4.5", "grok-4.3"]
 
         for model in preferences:
             if model in allowed_models:

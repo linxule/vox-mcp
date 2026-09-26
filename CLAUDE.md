@@ -49,7 +49,9 @@ uv run pytest                    # Run tests
 ## Key Environment Variables
 
 - `GEMINI_API_KEY`, `OPENAI_API_KEY`, etc. — provider API keys (at least one required)
-- `DEFAULT_MODEL` — `auto` (default) or a specific model name
+- `DEFAULT_MODEL` — `auto` or a specific model name; overrides the saved default
+- `vox-mcp config set-default MODEL` — saves non-secret preferences in `~/.vox/config.json`; reconnect to apply
+- `VOX_CONFIG_PATH` — optional settings path; tests must isolate it
 - `VOX_FORCE_ENV_OVERRIDE` — when `true`, `.env` values override system env vars
 - `VOX_GEMINI_USE_INTERACTIONS` — when `true` (default), Gemini uses the stateless Interactions API; `false` forces `generateContent`
 - `CONVERSATION_TIMEOUT_HOURS` — thread TTL (default: 24)
@@ -164,17 +166,19 @@ Guard: `tests/test_concurrency_event_loop.py`.
 - Falls back to `generateContent` (legacy but fully supported) on any failure; image inputs always
   use `generateContent`. Toggle with `VOX_GEMINI_USE_INTERACTIONS` (default on).
 - Gemini 3 uses an enum `thinking_level` (valid on google-genai ≥2.x). Interactions accepts only
-  `low`/`high` for Gemini 2.x and `low`/`medium`/`high` for Gemini 3 (`minimal` is Flash-only).
+  `low`/`high` for Gemini 2.x and `low`/`medium`/`high` for current Gemini 3 models. Vox maps `minimal` to `low`.
 
-### Moonshot (Kimi K2.6)
-- Thinking mode requires `extra_body={'thinking': {'type': 'enabled'}}`
+### Moonshot (Kimi K3 and K2.6)
+- K3 uses `max_completion_tokens`, low/high/max reasoning effort (default max), and no thinking toggle.
+- K2.6 thinking mode requires `extra_body={'thinking': {'type': 'enabled'}}`
 - Temperature is not sent — Kimi K2 thinking ignores it ("not modifiable — do not pass explicitly"); `moonshot.py` always omits it
 - API endpoint: `api.moonshot.cn/v1`
 - `kimi-k2-thinking-turbo` was removed in v0.3.0 (deprecated upstream)
 
-### DeepSeek (V4 Pro)
-- Thinking mode requires `extra_body={'thinking': {'type': 'enabled'}}` (single endpoint with toggle, defaults on)
-- Temperature is ignored when thinking is enabled
+### DeepSeek (V4.1 Flash and V4 Pro)
+- Native V4.1 Flash ID is `deepseek-flash`; generic `deepseek` prefers it.
+- Thinking uses `extra_body={'thinking': {'type': 'enabled'}}` (toggle defaults on), with low/high/max effort when explicitly requested.
+- Temperature is ignored when thinking is enabled; top_p is supported.
 - API endpoint: `api.deepseek.com`
 
 ### Cloudflare and Vercel AI Gateway
@@ -183,3 +187,12 @@ Guard: `tests/test_concurrency_event_loop.py`.
 - Cloudflare uses the account REST API with bearer auth and `cf-aig-gateway-id`; token requires Workers AI Read. Vercel uses its OpenAI-compatible `/v1` endpoint. See README for environment variables.
 - Catalogs come from `CLOUDFLARE_MODELS` / `VERCEL_MODELS`, without network discovery. The integrity gate exercises this fourth declaration mechanism through the real parser with synthetic offline IDs.
 - Gateway capabilities are conservative local estimates, not upstream promises. Text only, no inferred thinking mapping, no fabricated sampling parameters. Persist the Vox route while stripping its prefix only for the wire model ID.
+
+## Model preferences and request defaults
+
+See MODEL_SELECTION.md for current source evidence and selected defaults. Preserve
+Claude 3 Opus. Never inject a thinking mode when the caller omits it, at either the
+MCP or provider layer. GPT-6 uses stateless Responses (`store=False`), Kimi K3 uses
+`max_completion_tokens`, and Claude images must be encoded as native image blocks.
+`effort_map` and `default_thinking_mode` in registry JSON customize the thinking
+constraint; they do not authorize adding default effort to outgoing requests.

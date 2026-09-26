@@ -138,7 +138,7 @@ def test_kimi_never_sends_temperature(mock_openai_class, temp):
     mock_client.chat.completions.create.return_value = _mock_chat_response("kimi-k2.6")
 
     provider = MoonshotProvider("test-key")
-    provider.generate_content(prompt="hi", model_name="kimi", temperature=temp)
+    provider.generate_content(prompt="hi", model_name="kimi-k2.6", temperature=temp)
 
     kwargs = _call_kwargs(mock_client)
     # Kimi K2 thinking: "temperature is not modifiable — do not pass it explicitly".
@@ -229,10 +229,8 @@ def test_anthropic_haiku_thinking_fits_max_tokens_and_drops_temperature(mock_ant
 
 @patch("utils.model_restrictions.get_restriction_service")
 @patch("providers.anthropic.Anthropic")
-def test_anthropic_haiku_default_thinking_still_drops_temperature(mock_anthropic_class, mock_restrictions):
-    """Haiku's thinking constraint resolves a default mode even when the caller
-    omits thinking_mode, so thinking is always enabled for it in practice — and
-    an explicit temperature must still be dropped on that path."""
+def test_anthropic_haiku_omitted_thinking_preserves_temperature(mock_anthropic_class, mock_restrictions):
+    """Omitting thinking_mode preserves Haiku's native non-thinking default."""
     mock_restrictions.return_value = _permissive_restrictions()
     mock_client = MagicMock()
     mock_anthropic_class.return_value = mock_client
@@ -243,10 +241,8 @@ def test_anthropic_haiku_default_thinking_still_drops_temperature(mock_anthropic
 
     mock_client.messages.create.assert_called_once()
     kwargs = mock_client.messages.create.call_args[1]
-    # Even without an explicit thinking_mode, the constraint resolves its
-    # default mode, thinking is enabled, and temperature is dropped.
-    assert "thinking" in kwargs
-    assert "temperature" not in kwargs
+    assert "thinking" not in kwargs
+    assert kwargs["temperature"] == 0.5
 
 
 @patch("utils.model_restrictions.get_restriction_service")

@@ -318,11 +318,11 @@ class TestModelCapabilitiesThinkingIntegration:
 class TestProviderConstraintWiring:
     """Verify that provider MODEL_CAPABILITIES include the expected constraints."""
 
-    def test_deepseek_has_always_on(self):
+    def test_deepseek_has_effort_control(self):
         from providers.deepseek import DeepSeekProvider
 
         caps = DeepSeekProvider.MODEL_CAPABILITIES["deepseek-v4-pro"]
-        assert isinstance(caps.thinking_constraint, AlwaysOnThinkingConstraint)
+        assert isinstance(caps.thinking_constraint, EffortLevelThinkingConstraint)
 
     def test_moonshot_k26_has_always_on(self):
         from providers.moonshot import MoonshotProvider
@@ -407,4 +407,4 @@ class TestThinkingExtraBodyMerge:
                 extra_body={"thinking": {"type": "disabled"}},
             )
         forwarded = super_gen.call_args.kwargs["extra_body"]
-        assert forwarded == {"thinking": {"type": "disabled"}}
+        assert forwarded == {"thinking": {"type": "disabled"}, "reasoning_effort": "none"}

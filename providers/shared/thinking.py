@@ -72,6 +72,9 @@ class ThinkingConstraint(ABC):
     def create(
         constraint_type: str,
         max_thinking_tokens: int = 0,
+        *,
+        effort_map: dict[str, str] | None = None,
+        default_mode: str = "medium",
     ) -> "ThinkingConstraint":
         """Factory that yields the appropriate constraint for a configuration hint.
 
@@ -82,9 +85,9 @@ class ThinkingConstraint(ABC):
                 by ``token_budget`` constraints).
         """
         if constraint_type == "token_budget":
-            return TokenBudgetThinkingConstraint(max_tokens=max_thinking_tokens)
+            return TokenBudgetThinkingConstraint(max_tokens=max_thinking_tokens, default_mode=default_mode)
         if constraint_type == "effort_level":
-            return EffortLevelThinkingConstraint()
+            return EffortLevelThinkingConstraint(effort_map=effort_map, default_mode=default_mode)
         if constraint_type == "always_on":
             return AlwaysOnThinkingConstraint()
         raise ValueError(f"Unknown thinking constraint type: {constraint_type!r}")

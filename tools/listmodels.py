@@ -363,8 +363,15 @@ class ListModelsTool(BaseTool):
 
         output_lines.append("")
 
+        from config import DEFAULT_MODEL, DEFAULT_MODEL_SOURCE
+
         # Add summary
         output_lines.append("## Summary")
+        output_lines.append(f"**Default model**: `{DEFAULT_MODEL}` ({DEFAULT_MODEL_SOURCE})")
+        output_lines.append(
+            "Set a saved default with `vox-mcp config set-default MODEL`; restart/reconnect Vox afterward. "
+            "DEFAULT_MODEL in the MCP client environment overrides saved settings."
+        )
 
         # Count configured providers
         configured_count = sum(
@@ -408,6 +415,8 @@ class ListModelsTool(BaseTool):
             content_type="text",
             metadata={
                 "tool_name": self.name,
+                "default_model": DEFAULT_MODEL,
+                "default_model_source": DEFAULT_MODEL_SOURCE,
                 "configured_providers": configured_count,
             },
         )

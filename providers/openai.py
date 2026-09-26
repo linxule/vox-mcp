@@ -114,10 +114,10 @@ class OpenAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider)
             return None
 
         if category == ToolModelCategory.EXTENDED_REASONING:
-            # Prefer models with extended thinking support
-            # GPT-5.1 Codex first for coding tasks
+            # Prefer the highest-capability GPT-6 tier for extended reasoning.
             preferred = find_first(
                 [
+                    "gpt-6-astra",
                     "gpt-5.1-codex",
                     "gpt-5.1",
                     "gpt-5-codex",
@@ -130,10 +130,11 @@ class OpenAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider)
             return preferred if preferred else allowed_models[0]
 
         elif category == ToolModelCategory.FAST_RESPONSE:
-            # Prefer fast, cost-efficient models
-            # GPT-5.1 models for speed, GPT-5.1-Codex after (premium pricing but cached)
+            # User-selected default: Astra, with Luna as an explicit alternative.
             preferred = find_first(
                 [
+                    "gpt-6-astra",
+                    "gpt-6-luna",
                     "gpt-5.1",
                     "gpt-5.1-codex-mini",
                     "gpt-5",
@@ -146,10 +147,11 @@ class OpenAIModelProvider(RegistryBackedProviderMixin, OpenAICompatibleProvider)
             return preferred if preferred else allowed_models[0]
 
         else:  # BALANCED or default
-            # Prefer balanced performance/cost models
-            # Include GPT-5.1 family for latest capabilities
+            # User-selected default: Astra, with Sol as an explicit alternative.
             preferred = find_first(
                 [
+                    "gpt-6-astra",
+                    "gpt-6-sol",
                     "gpt-5.1",
                     "gpt-5.1-codex",
                     "gpt-5",

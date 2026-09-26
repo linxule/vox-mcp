@@ -7,34 +7,359 @@
   },
   "models": [
     {
+      "model_name": "anthropic/claude-fable-5.1",
+      "friendly_name": "OpenRouter (anthropic/claude-fable-5.1)",
+      "aliases": [],
+      "intelligence_score": 20,
+      "description": "Anthropic: Claude Fable 5.1 via OpenRouter; gateway-specific limits; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": false,
+      "unsupported_params": [
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "seed"
+      ],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "max"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
+      "model_name": "anthropic/claude-opus-5.5",
+      "friendly_name": "OpenRouter (anthropic/claude-opus-5.5)",
+      "aliases": [
+        "opus"
+      ],
+      "intelligence_score": 20,
+      "description": "Anthropic: Claude Opus 5.5 via OpenRouter; gateway-specific limits; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "unsupported_params": [
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "seed"
+      ],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "max"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
+      "model_name": "google/gemini-3.8-flash",
+      "friendly_name": "OpenRouter (google/gemini-3.8-flash)",
+      "aliases": [
+        "flash"
+      ],
+      "intelligence_score": 17,
+      "description": "Google: Gemini 3.8 Flash via OpenRouter; gateway-specific limits; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty"
+      ],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "high"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
+      "model_name": "google/gemini-3.1-pro-preview",
+      "friendly_name": "OpenRouter (google/gemini-3.1-pro-preview)",
+      "aliases": [
+        "pro"
+      ],
+      "intelligence_score": 19,
+      "description": "Google: Gemini 3.1 Pro Preview via OpenRouter; gateway-specific limits; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty"
+      ],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "high"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
+      "model_name": "deepseek/deepseek-v4.1-flash",
+      "friendly_name": "OpenRouter (deepseek/deepseek-v4.1-flash)",
+      "aliases": [
+        "deepseek"
+      ],
+      "intelligence_score": 18,
+      "description": "DeepSeek: DeepSeek V4.1 Flash via OpenRouter; gateway-specific limits; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "unsupported_params": [],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "high",
+        "high": "high",
+        "max": "max"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
+      "model_name": "moonshotai/kimi-k3",
+      "friendly_name": "OpenRouter (moonshotai/kimi-k3)",
+      "aliases": [
+        "kimi"
+      ],
+      "intelligence_score": 19,
+      "description": "MoonshotAI: Kimi K3 via OpenRouter; gateway-specific limits; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 1048576,
+      "max_output_tokens": 943718,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "unsupported_params": [],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "high",
+        "high": "high",
+        "max": "max"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
+      "model_name": "x-ai/grok-4.6",
+      "friendly_name": "OpenRouter (x-ai/grok-4.6)",
+      "aliases": [
+        "grok"
+      ],
+      "intelligence_score": 19,
+      "description": "Grok 4.6 via OpenRouter; preferred Grok selection; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 500000,
+      "max_output_tokens": 450000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty"
+      ],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "xhigh"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
+      "model_name": "x-ai/grok-4.7",
+      "friendly_name": "OpenRouter (x-ai/grok-4.7)",
+      "aliases": [],
+      "intelligence_score": 19,
+      "description": "SpaceXAI: Grok 4.7 via OpenRouter; gateway-specific limits; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 500000,
+      "max_output_tokens": 450000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "xhigh"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
+      "model_name": "openai/gpt-6-astra",
+      "friendly_name": "OpenRouter (openai/gpt-6-astra)",
+      "aliases": [],
+      "intelligence_score": 20,
+      "description": "OpenAI: GPT-6 Astra via OpenRouter; gateway-specific limits; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": false,
+      "unsupported_params": [
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "max"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
+      "model_name": "openai/gpt-6-sol",
+      "friendly_name": "OpenRouter (openai/gpt-6-sol)",
+      "aliases": [],
+      "intelligence_score": 19,
+      "description": "OpenAI: GPT-6 Sol via OpenRouter; gateway-specific limits; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": false,
+      "unsupported_params": [
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "max"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
+      "model_name": "openai/gpt-6-luna",
+      "friendly_name": "OpenRouter (openai/gpt-6-luna)",
+      "aliases": [],
+      "intelligence_score": 16,
+      "description": "OpenAI: GPT-6 Luna via OpenRouter; gateway-specific limits; Vox local image budget 10 MiB combined (upstream limits vary)",
+      "context_window": 1050000,
+      "max_output_tokens": 128000,
+      "supports_extended_thinking": true,
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_images": true,
+      "supports_temperature": false,
+      "unsupported_params": [
+        "top_p",
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ],
+      "thinking_constraint": "effort_level",
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "max"
+      },
+      "max_image_size_mb": 10.0
+    },
+    {
       "model_name": "anthropic/claude-fable-5",
       "friendly_name": "OpenRouter (anthropic/claude-fable-5)",
       "aliases": [],
       "intelligence_score": 20,
-      "description": "Claude Fable 5 via OpenRouter",
+      "description": "Claude Fable 5 via OpenRouter; Vox local image budget 10 MiB combined (upstream limits vary)",
       "context_window": 1000000,
       "max_output_tokens": 128000,
       "supports_extended_thinking": false,
       "supports_system_prompts": true,
       "supports_streaming": true,
       "supports_function_calling": true,
-      "supports_images": true
+      "supports_images": true,
+      "max_image_size_mb": 10.0
     },
     {
       "model_name": "anthropic/claude-opus-4.8",
       "friendly_name": "OpenRouter (anthropic/claude-opus-4.8)",
-      "aliases": [
-        "opus"
-      ],
+      "aliases": [],
       "intelligence_score": 19,
-      "description": "Claude Opus 4.8 via OpenRouter",
+      "description": "Claude Opus 4.8 via OpenRouter; Vox local image budget 10 MiB combined (upstream limits vary)",
       "context_window": 1000000,
       "max_output_tokens": 128000,
       "supports_extended_thinking": false,
       "supports_system_prompts": true,
       "supports_streaming": true,
       "supports_function_calling": true,
-      "supports_images": true
+      "supports_images": true,
+      "max_image_size_mb": 10.0
     },
     {
       "model_name": "anthropic/claude-sonnet-5",
@@ -43,14 +368,15 @@
         "sonnet"
       ],
       "intelligence_score": 17,
-      "description": "Claude Sonnet 5 via OpenRouter",
+      "description": "Claude Sonnet 5 via OpenRouter; Vox local image budget 10 MiB combined (upstream limits vary)",
       "context_window": 1000000,
       "max_output_tokens": 128000,
       "supports_extended_thinking": false,
       "supports_system_prompts": true,
       "supports_streaming": true,
       "supports_function_calling": true,
-      "supports_images": true
+      "supports_images": true,
+      "max_image_size_mb": 10.0
     },
     {
       "model_name": "anthropic/claude-haiku-4.5",
@@ -59,14 +385,15 @@
         "haiku"
       ],
       "intelligence_score": 13,
-      "description": "Claude Haiku 4.5 via OpenRouter",
+      "description": "Claude Haiku 4.5 via OpenRouter; Vox local image budget 10 MiB combined (upstream limits vary)",
       "context_window": 200000,
       "max_output_tokens": 64000,
       "supports_extended_thinking": false,
       "supports_system_prompts": true,
       "supports_streaming": true,
       "supports_function_calling": true,
-      "supports_images": true
+      "supports_images": true,
+      "max_image_size_mb": 10.0
     },
     {
       "model_name": "openai/o3",
@@ -159,11 +486,9 @@
     {
       "model_name": "google/gemini-2.5-flash",
       "friendly_name": "OpenRouter (google/gemini-2.5-flash)",
-      "aliases": [
-        "flash"
-      ],
+      "aliases": [],
       "intelligence_score": 14,
-      "description": "Gemini 2.5 Flash via OpenRouter",
+      "description": "Gemini 2.5 Flash via OpenRouter; Vox local image budget 10 MiB combined (upstream limits vary)",
       "context_window": 1048576,
       "max_output_tokens": 65536,
       "supports_extended_thinking": true,
@@ -171,16 +496,15 @@
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_images": true,
-      "supports_temperature": true
+      "supports_temperature": true,
+      "max_image_size_mb": 10.0
     },
     {
       "model_name": "google/gemini-2.5-pro",
       "friendly_name": "OpenRouter (google/gemini-2.5-pro)",
-      "aliases": [
-        "pro"
-      ],
+      "aliases": [],
       "intelligence_score": 18,
-      "description": "Gemini 2.5 Pro via OpenRouter",
+      "description": "Gemini 2.5 Pro via OpenRouter; Vox local image budget 10 MiB combined (upstream limits vary)",
       "context_window": 1048576,
       "max_output_tokens": 65536,
       "supports_extended_thinking": true,
@@ -188,26 +512,27 @@
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_images": true,
-      "supports_temperature": true
+      "supports_temperature": true,
+      "max_image_size_mb": 10.0
     },
     {
       "model_name": "x-ai/grok-4.5",
       "friendly_name": "OpenRouter (x-ai/grok-4.5)",
       "aliases": [
-        "grok",
         "grok-4.5",
         "grok4.5",
         "grok45"
       ],
       "intelligence_score": 18,
-      "description": "Grok 4.5 via OpenRouter - X.AI's flagship",
+      "description": "Grok 4.5 via OpenRouter - X.AI's flagship; Vox local image budget 10 MiB combined (upstream limits vary)",
       "context_window": 500000,
       "supports_extended_thinking": true,
       "supports_system_prompts": true,
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_images": true,
-      "supports_temperature": true
+      "supports_temperature": true,
+      "max_image_size_mb": 10.0
     },
     {
       "model_name": "x-ai/grok-4.3",
@@ -218,20 +543,20 @@
         "grok43"
       ],
       "intelligence_score": 17,
-      "description": "Grok 4.3 via OpenRouter - 1M context",
+      "description": "Grok 4.3 via OpenRouter - 1M context; Vox local image budget 10 MiB combined (upstream limits vary)",
       "context_window": 1000000,
       "supports_extended_thinking": true,
       "supports_system_prompts": true,
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_images": true,
-      "supports_temperature": true
+      "supports_temperature": true,
+      "max_image_size_mb": 10.0
     },
     {
       "model_name": "deepseek/deepseek-r1-0528",
       "friendly_name": "OpenRouter (deepseek/deepseek-r1-0528)",
       "aliases": [
-        "deepseek",
         "r1"
       ],
       "intelligence_score": 16,
@@ -256,15 +581,17 @@
         "mistral"
       ],
       "intelligence_score": 15,
-      "description": "Mistral Large 2512 via OpenRouter",
+      "description": "Mistral Large 2512 via OpenRouter; Vox local image budget 10 MiB combined (upstream limits vary)",
       "context_window": 262144,
-      "max_output_tokens": 32768,
+      "max_output_tokens": 209715,
       "supports_extended_thinking": false,
       "supports_system_prompts": true,
       "supports_streaming": true,
       "supports_function_calling": true,
       "supports_json_mode": true,
-      "supports_temperature": true
+      "supports_temperature": true,
+      "supports_images": true,
+      "max_image_size_mb": 10.0
     },
     {
       "model_name": "openai/gpt-4o-2024-05-13",
