@@ -2,17 +2,17 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.linxule/vox-mcp",
   "title": "Vox MCP",
-  "description": "Multi-model AI gateway — 8 providers plus local models, no system prompt injection.",
+  "description": "Multi-model AI gateway \u2014 10 providers including Cloudflare and Vercel, with conversation memory.",
   "repository": {
     "url": "https://github.com/linxule/vox-mcp",
     "source": "github"
   },
-  "version": "0.6.0",
+  "version": "0.7.0",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "vox-mcp",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "transport": {
         "type": "stdio"
       },
@@ -62,6 +62,60 @@
         {
           "name": "CUSTOM_API_URL",
           "description": "Custom OpenAI-compatible endpoint URL (Ollama, vLLM, etc.)",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "CLOUDFLARE_API_TOKEN",
+          "description": "Cloudflare API token with Workers AI Read permission",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "CLOUDFLARE_ACCOUNT_ID",
+          "description": "Cloudflare account ID (required with CLOUDFLARE_API_TOKEN)",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "CLOUDFLARE_GATEWAY_ID",
+          "description": "Cloudflare gateway ID (defaults to default)",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "CLOUDFLARE_MODELS",
+          "description": "Comma-separated Cloudflare upstream model IDs to list",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "VERCEL_AI_GATEWAY_API_KEY",
+          "description": "Vercel AI Gateway API key (AI_GATEWAY_API_KEY also accepted)",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "AI_GATEWAY_API_KEY",
+          "description": "Alternative Vercel AI Gateway API key; VERCEL_AI_GATEWAY_API_KEY takes precedence",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "VERCEL_MODELS",
+          "description": "Comma-separated Vercel upstream model IDs to list",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "CLOUDFLARE_ALLOWED_MODELS",
+          "description": "Optional comma-separated Cloudflare model allowlist",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "VERCEL_ALLOWED_MODELS",
+          "description": "Optional comma-separated Vercel model allowlist",
           "isRequired": false,
           "isSecret": false
         }

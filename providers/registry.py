@@ -43,6 +43,8 @@ class ModelProviderRegistry:
         ProviderType.MOONSHOT,  # Direct Moonshot AI access
         ProviderType.DEEPSEEK,  # Direct DeepSeek access
         ProviderType.CUSTOM,  # Local/self-hosted models
+        ProviderType.CLOUDFLARE,  # Explicit gateway routes only
+        ProviderType.VERCEL,  # Explicit gateway routes only
         ProviderType.OPENROUTER,  # Catch-all for cloud models
     ]
 
@@ -115,6 +117,10 @@ class ModelProviderRegistry:
                 api_key = api_key or ""
                 # Initialize custom provider with both API key and base URL
                 provider = provider_class(api_key=api_key, base_url=custom_url)
+        elif provider_type == ProviderType.CLOUDFLARE:
+            if not api_key or not get_env("CLOUDFLARE_ACCOUNT_ID"):
+                return None
+            provider = provider_class(api_key=api_key)
         elif provider_type == ProviderType.GOOGLE:
             # For Gemini, check if custom base URL is configured
             if not api_key:
@@ -152,6 +158,17 @@ class ModelProviderRegistry:
             ModelProvider instance that supports this model
         """
         logging.debug(f"get_provider_for_model called with model_name='{model_name}'")
+
+        # An explicit gateway route must never fall through to another service,
+        # even when its credentials are missing or its allowlist rejects it.
+        route = model_name.split("/", 1)[0].lower()
+        gateway_routes = {
+            "cloudflare": ProviderType.CLOUDFLARE,
+            "vercel": ProviderType.VERCEL,
+        }
+        if route in gateway_routes:
+            provider = cls.get_provider(gateway_routes[route])
+            return provider if provider and provider.validate_model_name(model_name) else None
 
         # Check providers in priority order
         instance = cls()
@@ -322,6 +339,8 @@ class ModelProviderRegistry:
             ProviderType.OPENAI: "OPENAI_API_KEY",
             ProviderType.XAI: "XAI_API_KEY",
             ProviderType.OPENROUTER: "OPENROUTER_API_KEY",
+            ProviderType.CLOUDFLARE: "CLOUDFLARE_API_TOKEN",
+            ProviderType.VERCEL: "VERCEL_AI_GATEWAY_API_KEY",
             ProviderType.CUSTOM: "CUSTOM_API_KEY",  # Can be empty for providers that don't need auth
             ProviderType.ANTHROPIC: "ANTHROPIC_API_KEY",
             ProviderType.MOONSHOT: "MOONSHOT_API_KEY",
@@ -332,6 +351,8 @@ class ModelProviderRegistry:
         if not env_var:
             return None
 
+        if provider_type == ProviderType.VERCEL:
+            return get_env(env_var) or get_env("AI_GATEWAY_API_KEY")
         return get_env(env_var)
 
     @classmethod

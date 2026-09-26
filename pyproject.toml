@@ -1,7 +1,7 @@
 [project]
 name = "vox-mcp"
-version = "0.6.0"
-description = "Multi-model AI gateway for MCP clients — routes prompts to Gemini, OpenAI, Anthropic, xAI, DeepSeek, Moonshot, OpenRouter, and local models with conversation memory"
+version = "0.7.0"
+description = "Multi-model AI gateway for MCP clients — routes prompts to Gemini, OpenAI, Anthropic, xAI, DeepSeek, Moonshot, OpenRouter, Cloudflare AI Gateway, Vercel AI Gateway, and local models with conversation memory"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 authors = [{ name = "Xule Lin" }]
@@ -21,9 +21,9 @@ urls = { Homepage = "https://github.com/linxule/vox-mcp", Repository = "https://
 dependencies = [
     # SDK 2 removes the low-level decorator API used by server.py.
     "mcp>=1.30.0,<2",
-    "google-genai>=2.3.0",
+    "google-genai>=2.3.0,<3",
     "openai>=2.0.0,<3",
-    "pydantic>=2.11.0",
+    "pydantic>=2.11.0,<3",
     "python-dotenv>=1.0.0",
     "anthropic>=0.69.0,<1",
 ]

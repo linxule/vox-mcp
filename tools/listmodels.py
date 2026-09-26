@@ -104,6 +104,14 @@ class ListModelsTool(BaseTool):
             ProviderType.ANTHROPIC: {"name": "Anthropic Claude", "env_key": "ANTHROPIC_API_KEY"},
             ProviderType.MOONSHOT: {"name": "Moonshot (Kimi)", "env_key": "MOONSHOT_API_KEY"},
             ProviderType.DEEPSEEK: {"name": "DeepSeek", "env_key": "DEEPSEEK_API_KEY"},
+            ProviderType.CLOUDFLARE: {
+                "name": "Cloudflare AI Gateway",
+                "env_key": "CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID",
+            },
+            ProviderType.VERCEL: {
+                "name": "Vercel AI Gateway",
+                "env_key": "VERCEL_AI_GATEWAY_API_KEY (or AI_GATEWAY_API_KEY)",
+            },
         }
 
         def format_model_entry(provider, display_name: str) -> list[str]:
@@ -155,6 +163,13 @@ class ListModelsTool(BaseTool):
 
             if is_configured:
                 output_lines.append("**Status**: Configured and available")
+                if provider_type in {ProviderType.CLOUDFLARE, ProviderType.VERCEL}:
+                    prefix = provider_type.value
+                    output_lines.append(
+                        f"Use `{prefix}/<provider>/<model>` with the gateway's exact model ID. "
+                        f"Set `{prefix.upper()}_MODELS` to list models here. "
+                        "Capabilities use conservative local budgeting defaults; upstream availability is not probed."
+                    )
                 has_restrictions = bool(restriction_service and restriction_service.has_restrictions(provider_type))
 
                 if has_restrictions:

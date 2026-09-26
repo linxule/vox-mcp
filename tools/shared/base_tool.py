@@ -288,6 +288,16 @@ class BaseTool(ABC):
 
         summaries, total, has_restrictions = self._get_ranked_model_summaries()
         if not summaries:
+            from providers.registry import ModelProviderRegistry
+            from providers.shared import ProviderType
+
+            routes = [
+                f"{provider_type.value}/<provider>/<model>"
+                for provider_type in (ProviderType.CLOUDFLARE, ProviderType.VERCEL)
+                if ModelProviderRegistry.get_provider(provider_type) is not None
+            ]
+            if routes:
+                return "Explicit gateway model IDs: " + ", ".join(routes) + "; use listmodels for configuration details"
             return (
                 "No models detected. Configure provider credentials or set DEFAULT_MODEL to a valid option. "
                 "If the user requested a specific model, respond with this notice instead of substituting another model."

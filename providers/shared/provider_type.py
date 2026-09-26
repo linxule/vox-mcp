@@ -12,6 +12,8 @@ class ProviderType(Enum):
     OPENAI = "openai"
     XAI = "xai"
     OPENROUTER = "openrouter"
+    CLOUDFLARE = "cloudflare"
+    VERCEL = "vercel"
     CUSTOM = "custom"
     ANTHROPIC = "anthropic"
     MOONSHOT = "moonshot"

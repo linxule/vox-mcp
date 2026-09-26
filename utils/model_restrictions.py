@@ -60,6 +60,8 @@ class ModelRestrictionService:
         ProviderType.ANTHROPIC: "ANTHROPIC_ALLOWED_MODELS",
         ProviderType.MOONSHOT: "MOONSHOT_ALLOWED_MODELS",
         ProviderType.DEEPSEEK: "DEEPSEEK_ALLOWED_MODELS",
+        ProviderType.CLOUDFLARE: "CLOUDFLARE_ALLOWED_MODELS",
+        ProviderType.VERCEL: "VERCEL_ALLOWED_MODELS",
     }
 
     def __init__(self):
@@ -83,6 +85,10 @@ class ModelRestrictionService:
             for model in env_value.split(","):
                 cleaned = model.strip().lower()
                 if cleaned:
+                    if provider_type in {ProviderType.CLOUDFLARE, ProviderType.VERCEL}:
+                        prefix = provider_type.value + "/"
+                        if not cleaned.startswith(prefix):
+                            cleaned = prefix + cleaned
                     models.add(cleaned)
 
             if models:
