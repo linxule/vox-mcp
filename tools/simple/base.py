@@ -423,7 +423,6 @@ class SimpleTool(BaseTool):
 
             # Log any temperature corrections
             for warning in temp_warnings:
-                # Get thinking mode with defaults
                 logger.warning(warning)
             thinking_mode = self.get_request_thinking_mode(request)
             if thinking_mode is not None:
@@ -431,8 +430,6 @@ class SimpleTool(BaseTool):
 
                 if self._model_context.provider.get_provider_type() in (ProviderType.CLOUDFLARE, ProviderType.VERCEL):
                     raise ValueError("Gateway thinking_mode mapping is unverified; use the provider's default")
-            if thinking_mode is None:
-                thinking_mode = self.get_default_thinking_mode()
 
             # Get the provider from model context (clean OOP - no re-fetching)
             provider = self._model_context.provider

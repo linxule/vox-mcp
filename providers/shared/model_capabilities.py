@@ -44,6 +44,8 @@ class ModelCapabilities:
     context_window: int = 0
     max_output_tokens: int = 0
     max_thinking_tokens: int = 0
+    # Chat Completions token-limit parameter; Responses always uses max_output_tokens.
+    output_token_parameter: str = "max_tokens"
 
     # Capability flags
     supports_extended_thinking: bool = False

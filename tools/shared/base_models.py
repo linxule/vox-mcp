@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 COMMON_FIELD_DESCRIPTIONS = {
     "model": "Model name to use. Use `listmodels` for available options. The server validates model availability and returns errors for unknown models.",
     "temperature": "Optional sampling temperature. If omitted, the model's own default is used (recommended; some reasoning models reject or degrade on a fabricated value). Range is provider-dependent (commonly 0–2); values are clamped per model.",
-    "thinking_mode": "Reasoning depth: minimal, low, medium, high, or max.",
+    "thinking_mode": "Optional reasoning depth: minimal, low, medium, high, or max. Omit to use the provider default.",
     "continuation_id": (
         "Unique thread continuation ID for multi-turn conversations. Works across different tools. "
         "Reuse the last continuation_id you were given to preserve full conversation context, "

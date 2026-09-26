@@ -1,13 +1,16 @@
 """Anthropic Claude model provider implementation."""
 
+import base64
 import logging
 
 from anthropic import Anthropic
 
+from utils.image_utils import validate_image
+
 from .base import ModelProvider
 from .shared import ModelCapabilities, ModelResponse, ProviderType
 from .shared.temperature import RangeTemperatureConstraint
-from .shared.thinking import TokenBudgetThinkingConstraint
+from .shared.thinking import EffortLevelThinkingConstraint, TokenBudgetThinkingConstraint
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +20,10 @@ class AnthropicModelProvider(ModelProvider):
 
     # Model configurations using ModelCapabilities objects.
     #
-    # Catalog refreshed 2026-07-09 against the Claude API models overview
+    # Catalog refreshed 2026-09-26 against the Claude API models overview
     # (https://platform.claude.com/docs/en/about-claude/models/overview):
-    #   - Fable 5 / Opus 4.8 / Sonnet 5 use ADAPTIVE thinking (server-side,
-    #     effort defaults to high) and 400 on any non-default temperature /
+    #   - Current Fable/Opus/Sonnet use adaptive thinking and reject
+    #     non-default temperature /
     #     top_p / top_k, so supports_temperature=False keeps the wire clean.
     #     Their dateless IDs are pinned snapshots, not evergreen pointers.
     #   - Haiku 4.5 keeps classic extended thinking (budget_tokens) and does
@@ -32,6 +35,55 @@ class AnthropicModelProvider(ModelProvider):
     #     here: the OpenRouter registry already binds them, and colliding
     #     would silently re-route users who configure both providers.
     SUPPORTED_MODELS = MODEL_CAPABILITIES = {
+        "claude-fable-5-1": ModelCapabilities(
+            provider=ProviderType.ANTHROPIC,
+            model_name="claude-fable-5-1",
+            friendly_name="Claude Fable 5.1",
+            intelligence_score=20,
+            context_window=1_000_000,
+            max_output_tokens=128_000,
+            supports_extended_thinking=True,
+            thinking_constraint=EffortLevelThinkingConstraint(
+                effort_map={"minimal": "low", "low": "low", "medium": "medium", "high": "high", "max": "max"},
+                default_mode="high",
+            ),
+            supports_system_prompts=True,
+            supports_streaming=True,
+            supports_function_calling=True,
+            supports_json_mode=True,
+            supports_images=True,
+            max_image_size_mb=10.0,
+            supports_temperature=False,  # rejects non-default temperature/top_p/top_k
+            allow_code_generation=True,
+            aliases=["fable", "fable5.1", "fable-5.1", "claude-fable-5.1"],
+            description=(
+                "Claude Fable 5.1 (1M context) - Anthropic's most capable widely released model; "
+                "adaptive thinking always on; default effort high"
+            ),
+        ),
+        "claude-opus-5-5": ModelCapabilities(
+            provider=ProviderType.ANTHROPIC,
+            model_name="claude-opus-5-5",
+            friendly_name="Claude Opus 5.5",
+            intelligence_score=19,
+            context_window=1_000_000,
+            max_output_tokens=128_000,
+            supports_extended_thinking=True,
+            thinking_constraint=EffortLevelThinkingConstraint(
+                effort_map={"minimal": "low", "low": "low", "medium": "medium", "high": "high", "max": "max"},
+                default_mode="medium",
+            ),
+            supports_system_prompts=True,
+            supports_streaming=True,
+            supports_function_calling=True,
+            supports_json_mode=True,
+            supports_images=True,
+            max_image_size_mb=10.0,
+            supports_temperature=False,  # rejects non-default temperature/top_p/top_k
+            allow_code_generation=True,
+            aliases=["opus5.5", "opus-5.5", "claude-opus-5.5"],
+            description="Claude Opus 5.5 (1M context) - Complex agentic coding and knowledge work; adaptive thinking always on, default effort medium",
+        ),
         "claude-fable-5": ModelCapabilities(
             provider=ProviderType.ANTHROPIC,
             model_name="claude-fable-5",
@@ -48,7 +100,7 @@ class AnthropicModelProvider(ModelProvider):
             max_image_size_mb=10.0,
             supports_temperature=False,  # rejects non-default temperature/top_p/top_k
             allow_code_generation=True,
-            aliases=["fable", "fable5", "fable-5"],
+            aliases=["fable5", "fable-5"],
             description=(
                 "Claude Fable 5 (1M context) - Anthropic's most capable widely released model; "
                 "adaptive thinking always on. Availability is policy-sensitive "
@@ -172,6 +224,21 @@ class AnthropicModelProvider(ModelProvider):
 
         return self.SUPPORTED_MODELS[resolved_name]
 
+    def get_preferred_model(self, category, allowed_models: list[str]) -> str | None:
+        """Prefer the current flagship while respecting the caller's allowlist."""
+        for model in [
+            "claude-opus-5-5",
+            "claude-fable-5-1",
+            "claude-fable-5",
+            "claude-opus-4-8",
+            "claude-sonnet-5",
+            "claude-haiku-4-5",
+            "claude-3-opus",
+        ]:
+            if model in allowed_models:
+                return model
+        return allowed_models[0] if allowed_models else None
+
     def get_provider_type(self) -> ProviderType:
         """Return the provider type."""
         return ProviderType.ANTHROPIC
@@ -187,9 +254,11 @@ class AnthropicModelProvider(ModelProvider):
         if model_name in self.SUPPORTED_MODELS:
             return model_name
 
-        # Check aliases
+        # The wire ID can differ from the catalog key (for pinned snapshots).
         for model_key, capabilities in self.SUPPORTED_MODELS.items():
-            if model_name.lower() in [alias.lower() for alias in capabilities.aliases]:
+            if model_name == capabilities.model_name or model_name.lower() in [
+                alias.lower() for alias in capabilities.aliases
+            ]:
                 return model_key
 
         return None
@@ -223,6 +292,27 @@ class AnthropicModelProvider(ModelProvider):
 
             # Convert prompt to Anthropic messages format
             messages = [{"role": "user", "content": prompt}]
+            images = kwargs.get("images")
+            if images:
+                if not capabilities.supports_images:
+                    raise ValueError(f"Model {actual_model_name} does not support images")
+                image_blocks = []
+                # Continuations can repeat an input; send each exact input once,
+                # in its original order, without adding captions to the prompt.
+                for image_path in dict.fromkeys(images):
+                    image_bytes, mime_type = validate_image(image_path, capabilities.max_image_size_mb)
+                    image_data = base64.b64encode(image_bytes).decode("ascii")
+                    # Claude's limit is measured on the encoded image, while the
+                    # shared helper validates decoded file/data-URL bytes.
+                    if len(image_data) > capabilities.max_image_size_mb * 1024 * 1024:
+                        raise ValueError(f"Base64-encoded image too large (max: {capabilities.max_image_size_mb}MB)")
+                    image_blocks.append(
+                        {
+                            "type": "image",
+                            "source": {"type": "base64", "media_type": mime_type, "data": image_data},
+                        }
+                    )
+                messages = [{"role": "user", "content": [*image_blocks, {"type": "text", "text": prompt}]}]
 
             # Prepare request parameters
             request_params = {
@@ -246,16 +336,21 @@ class AnthropicModelProvider(ModelProvider):
                 request_params["temperature"] = temperature
 
             # Add extended thinking if supported, using ThinkingConstraint.
-            # Adaptive-thinking models (Fable 5, Opus 4.8, Sonnet 5) carry no
-            # constraint and supports_extended_thinking=False, so nothing is
-            # sent for them — adaptive thinking is a server-side default and
-            # fabricating parameters would violate the passthrough principle.
+            # Current adaptive models use effort, older catalog entries retain
+            # their existing server defaults, and Haiku uses token budgets.
             thinking_mode = kwargs.get("thinking_mode")
-            thinking_params = capabilities.get_effective_thinking_params(thinking_mode)
+            thinking_params = (
+                capabilities.get_effective_thinking_params(thinking_mode) if thinking_mode is not None else None
+            )
             budget = None
             if thinking_params is not None and "thinking_budget" in thinking_params:
                 budget = thinking_params["thinking_budget"]
-            elif capabilities.supports_extended_thinking:
+            elif thinking_params is not None and "effort" in thinking_params:
+                # Adaptive models have provider defaults: send effort only when
+                # the caller requested it, never a manual thinking budget.
+                if thinking_mode is not None:
+                    request_params["output_config"] = {"effort": thinking_params["effort"]}
+            elif thinking_mode is not None and capabilities.supports_extended_thinking:
                 # Fallback for models without a constraint configured
                 budget = capabilities.max_thinking_tokens or 16_000
 
@@ -297,7 +392,7 @@ class AnthropicModelProvider(ModelProvider):
             if response.content:
                 for block in response.content:
                     if hasattr(block, "type"):
-                        if block.type == "thinking":
+                        if block.type == "thinking" and block.thinking:
                             thinking_content += f"[THINKING]\n{block.thinking}\n\n"
                         elif block.type == "text":
                             content += block.text

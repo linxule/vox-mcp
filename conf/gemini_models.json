@@ -7,13 +7,36 @@
   },
   "models": [
     {
+      "model_name": "gemini-3.8-flash",
+      "friendly_name": "Gemini 3.8 Flash",
+      "aliases": [
+        "flash",
+        "gemini-3.8",
+        "gemini-flash"
+      ],
+      "intelligence_score": 20,
+      "description": "Gemini 3.8 Flash - Stable multimodal reasoning (1M input, 64K output; low/medium/high thinking)",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "supports_extended_thinking": true,
+      "thinking_constraint": "always_on",
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "allow_code_generation": true,
+      "max_image_size_mb": 32.0
+    },
+    {
       "model_name": "gemini-2.5-pro",
-      "friendly_name": "Gemini 2.5 Pro",
+      "friendly_name": "Gemini 2.5 Pro (legacy)",
       "aliases": [
         "gemini-2.5"
       ],
       "intelligence_score": 18,
-      "description": "Gemini 2.5 Pro (1M context) - Deep reasoning with always-on thinking, vision",
+      "description": "Gemini 2.5 Pro (1M context) - Deep reasoning with always-on thinking, vision; legacy access for existing users only",
       "context_window": 1048576,
       "max_output_tokens": 65536,
       "max_thinking_tokens": 32768,
@@ -30,12 +53,12 @@
     },
     {
       "model_name": "gemini-2.5-flash",
-      "friendly_name": "Gemini 2.5 Flash",
+      "friendly_name": "Gemini 2.5 Flash (legacy)",
       "aliases": [
-        "flash"
+        "flash-2.5"
       ],
       "intelligence_score": 14,
-      "description": "Gemini 2.5 Flash (1M context) - Fast reasoning with thinking support",
+      "description": "Gemini 2.5 Flash (1M context) - Fast reasoning with thinking support; legacy access for existing users only",
       "context_window": 1048576,
       "max_output_tokens": 65536,
       "max_thinking_tokens": 32768,
@@ -69,46 +92,6 @@
       "supports_images": true,
       "supports_temperature": true,
       "allow_code_generation": true,
-      "max_image_size_mb": 32.0
-    },
-    {
-      "model_name": "gemini-2.0-flash",
-      "friendly_name": "Gemini 2.0 Flash",
-      "aliases": [
-        "flash-2.0",
-        "flash2"
-      ],
-      "intelligence_score": 12,
-      "description": "Gemini 2.0 Flash - Fast, efficient responses",
-      "context_window": 1048576,
-      "max_output_tokens": 8192,
-      "supports_extended_thinking": false,
-      "supports_system_prompts": true,
-      "supports_streaming": true,
-      "supports_function_calling": true,
-      "supports_json_mode": true,
-      "supports_images": true,
-      "supports_temperature": true,
-      "max_image_size_mb": 32.0
-    },
-    {
-      "model_name": "gemini-2.0-flash-lite",
-      "friendly_name": "Gemini 2.0 Flash Lite",
-      "aliases": [
-        "flashlite",
-        "flash-lite"
-      ],
-      "intelligence_score": 10,
-      "description": "Gemini 2.0 Flash Lite - Lightweight, fast responses",
-      "context_window": 1048576,
-      "max_output_tokens": 8192,
-      "supports_extended_thinking": false,
-      "supports_system_prompts": true,
-      "supports_streaming": true,
-      "supports_function_calling": true,
-      "supports_json_mode": true,
-      "supports_images": true,
-      "supports_temperature": true,
       "max_image_size_mb": 32.0
     }
   ]

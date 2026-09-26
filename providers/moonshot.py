@@ -5,13 +5,13 @@ import logging
 from .openai_compatible import OpenAICompatibleProvider
 from .shared import ModelCapabilities, ModelResponse, ProviderType
 from .shared.temperature import FixedTemperatureConstraint
-from .shared.thinking import AlwaysOnThinkingConstraint
+from .shared.thinking import AlwaysOnThinkingConstraint, EffortLevelThinkingConstraint
 
 logger = logging.getLogger(__name__)
 
 
 class MoonshotProvider(OpenAICompatibleProvider):
-    """Moonshot AI provider for Kimi K2 models.
+    """Moonshot AI provider for Kimi models.
 
     Moonshot AI provides OpenAI-compatible APIs for their Kimi models,
     which are optimized for agentic capabilities, tool calling, and research tasks.
@@ -21,6 +21,29 @@ class MoonshotProvider(OpenAICompatibleProvider):
 
     # Define Kimi models with their capabilities
     MODEL_CAPABILITIES = {
+        # Native contract: https://platform.kimi.ai/docs/guide/kimi-k3-quickstart
+        "kimi-k3": ModelCapabilities(
+            provider=ProviderType.MOONSHOT,
+            model_name="kimi-k3",
+            friendly_name="Kimi K3",
+            context_window=1_048_576,
+            max_output_tokens=1_048_576,
+            output_token_parameter="max_completion_tokens",
+            supports_temperature=False,
+            unsupported_params=["top_p", "presence_penalty", "frequency_penalty", "n"],
+            supports_json_mode=True,
+            supports_function_calling=True,
+            supports_extended_thinking=True,
+            thinking_constraint=EffortLevelThinkingConstraint(
+                effort_map={"minimal": "low", "low": "low", "medium": "high", "high": "high", "max": "max"},
+                default_mode="max",
+            ),
+            supports_images=True,
+            max_image_size_mb=20.0,
+            aliases=["kimi", "k3"],
+            intelligence_score=20,
+            description="Kimi K3 (1M context) - Multimodal reasoning; always-on thinking with low/high/max effort",
+        ),
         "kimi-k2.6": ModelCapabilities(
             provider=ProviderType.MOONSHOT,
             model_name="kimi-k2.6",
@@ -34,7 +57,7 @@ class MoonshotProvider(OpenAICompatibleProvider):
             thinking_constraint=AlwaysOnThinkingConstraint(),
             supports_images=True,
             max_image_size_mb=20.0,
-            aliases=["kimi", "kimi-k2", "k2.6", "kimi-k26"],
+            aliases=["kimi-k2", "k2.6", "kimi-k26"],
             intelligence_score=20,
             description="Kimi K2.6 (256K context) - Multimodal model with vision and always-on thinking; temperature is not sent (Kimi K2 thinking ignores it)",
         ),
@@ -67,6 +90,13 @@ class MoonshotProvider(OpenAICompatibleProvider):
             raise ValueError(f"Moonshot model '{model_name}' is not allowed by current restrictions.")
 
         return self.MODEL_CAPABILITIES[resolved_name]
+
+    def get_preferred_model(self, category, allowed_models: list[str]) -> str | None:
+        """Prefer the current flagship while respecting the caller's allowlist."""
+        for model in ["kimi-k3", "kimi-k2.6"]:
+            if model in allowed_models:
+                return model
+        return allowed_models[0] if allowed_models else None
 
     def get_provider_type(self) -> ProviderType:
         """Return the provider type."""
@@ -112,13 +142,13 @@ class MoonshotProvider(OpenAICompatibleProvider):
         # Kimi K2 thinking models do not accept a temperature parameter. Per
         # Moonshot's official guidance: "temperature is not modifiable — use the
         # default and do not pass it explicitly." Always omit it (thinking is
-        # forced on via extra_body below); any caller value is dropped.
+        # enabled for K2.6 below, always on for K3); any caller value is dropped.
         temperature = None
 
         # Moonshot API requires explicit extra_body to control thinking mode.
         # Merge into any caller-supplied extra_body so we don't silently drop
         # the thinking toggle when callers pass other extra_body keys.
-        if capabilities.supports_extended_thinking:
+        if resolved_model_name != "kimi-k3" and capabilities.supports_extended_thinking:
             extra_body = kwargs.setdefault("extra_body", {})
             if isinstance(extra_body, dict):
                 extra_body.setdefault("thinking", {"type": "enabled"})

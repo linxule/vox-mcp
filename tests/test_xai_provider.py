@@ -131,7 +131,7 @@ class TestXAIProvider:
         provider = XAIModelProvider("test-key")
 
         # Shorthand resolution — "grok" points at the current flagship
-        assert provider._resolve_model_name("grok") == "grok-4.5"
+        assert provider._resolve_model_name("grok") == "grok-4.6"
         assert provider._resolve_model_name("grok45") == "grok-4.5"
         assert provider._resolve_model_name("grok4.5") == "grok-4.5"
         assert provider._resolve_model_name("grok4.3") == "grok-4.3"
@@ -213,7 +213,7 @@ class TestXAIProvider:
         provider = XAIModelProvider("test-key")
 
         capabilities = provider.get_capabilities("grok")
-        assert capabilities.model_name == "grok-4.5"  # Should resolve to full name
+        assert capabilities.model_name == "grok-4.6"  # Should resolve to full name
         assert capabilities.context_window == 500_000
 
     def test_unsupported_model_capabilities(self):
@@ -366,7 +366,7 @@ class TestXAIProvider:
         # Check model configs have required fields
         from providers.shared import ModelCapabilities
 
-        flagship = provider.MODEL_CAPABILITIES["grok-4.5"]
+        flagship = provider.MODEL_CAPABILITIES["grok-4.6"]
         assert isinstance(flagship, ModelCapabilities)
         assert flagship.context_window == 500_000
         assert flagship.supports_extended_thinking is True
@@ -383,7 +383,7 @@ class TestXAIProvider:
         """Test that generate_content resolves aliases before making API calls.
 
         This is the CRITICAL test that ensures aliases like 'grok' get resolved
-        to 'grok-4.5' before being sent to X.AI API.
+        to 'grok-4.6' before being sent to X.AI API.
         """
         # Set up mock OpenAI client
         mock_client = MagicMock()
@@ -394,7 +394,7 @@ class TestXAIProvider:
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Test response"
         mock_response.choices[0].finish_reason = "stop"
-        mock_response.model = "grok-4.5"  # API returns the resolved model name
+        mock_response.model = "grok-4.6"  # API returns the resolved model name
         mock_response.id = "test-id"
         mock_response.created = 1234567890
         mock_response.usage = MagicMock()
@@ -410,15 +410,15 @@ class TestXAIProvider:
         result = provider.generate_content(
             prompt="Test prompt",
             model_name="grok",
-            temperature=0.7,  # This should be resolved to "grok-4.5"
+            temperature=0.7,  # This should be resolved to "grok-4.6"
         )
 
         # Verify the API was called with the RESOLVED model name
         mock_client.chat.completions.create.assert_called_once()
         call_kwargs = mock_client.chat.completions.create.call_args[1]
 
-        # CRITICAL ASSERTION: The API should receive "grok-4.5", not "grok"
-        assert call_kwargs["model"] == "grok-4.5", f"Expected 'grok-4.5' but API received '{call_kwargs['model']}'"
+        # CRITICAL ASSERTION: The API should receive "grok-4.6", not "grok"
+        assert call_kwargs["model"] == "grok-4.6", f"Expected 'grok-4.6' but API received '{call_kwargs['model']}'"
 
         # Verify other parameters
         assert call_kwargs["temperature"] == 0.7
@@ -428,7 +428,7 @@ class TestXAIProvider:
 
         # Verify response
         assert result.content == "Test response"
-        assert result.model_name == "grok-4.5"  # Should be the resolved name
+        assert result.model_name == "grok-4.6"  # Should be the resolved name
 
     @patch("providers.openai_compatible.OpenAI")
     def test_generate_content_other_aliases(self, mock_openai_class):

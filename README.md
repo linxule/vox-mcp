@@ -24,16 +24,18 @@ Send a prompt, optionally attach files or images, pick a model (or let the agent
 
 | Provider | Env Variable | Example Models |
 |----------|-------------|----------------|
-| Google Gemini | `GEMINI_API_KEY` | gemini-2.5-pro |
-| OpenAI | `OPENAI_API_KEY` | gpt-5.1, gpt-5, o3, o4-mini |
-| Anthropic | `ANTHROPIC_API_KEY` | claude-opus-4-8, claude-sonnet-5, claude-haiku-4-5 |
-| xAI | `XAI_API_KEY` | grok-4.5, grok-4.3 |
-| DeepSeek | `DEEPSEEK_API_KEY` | deepseek-v4-pro |
-| Moonshot (Kimi) | `MOONSHOT_API_KEY` | kimi-k2.6 |
+| Google Gemini | `GEMINI_API_KEY` | gemini-3.8-flash, gemini-3.1-pro-preview |
+| OpenAI | `OPENAI_API_KEY` | gpt-6-astra (default), gpt-6-sol, gpt-6-luna |
+| Anthropic | `ANTHROPIC_API_KEY` | claude-opus-5-5 (default), claude-fable-5-1, claude-sonnet-5, claude-haiku-4-5 |
+| xAI | `XAI_API_KEY` | grok-4.6 (default), grok-4.7 |
+| DeepSeek | `DEEPSEEK_API_KEY` | deepseek-flash (V4.1 Flash), deepseek-v4-pro |
+| Moonshot (Kimi) | `MOONSHOT_API_KEY` | kimi-k3, kimi-k2.6 |
 | OpenRouter | `OPENROUTER_API_KEY` | Any OpenRouter model |
 | Cloudflare AI Gateway | `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | `cloudflare/openai/gpt-5.5` |
 | Vercel AI Gateway | `VERCEL_AI_GATEWAY_API_KEY` or `AI_GATEWAY_API_KEY` | `vercel/anthropic/claude-sonnet-4.6` |
 | Custom | `CUSTOM_API_URL` | Ollama, vLLM, LM Studio, etc. |
+
+See [model selections and verification sources](https://github.com/linxule/vox-mcp/blob/main/MODEL_SELECTION.md) for provider preferences, exact API IDs, and reasoning behavior.
 
 ## Quick start
 
@@ -168,6 +170,44 @@ Copy `.env.example` to `.env` and configure:
 - **`MAX_CONVERSATION_TURNS`** — thread length limit (default: 100)
 
 See `.env.example` for the full reference.
+
+### Set your default model
+
+You or your agent can save a default without editing MCP client configuration:
+
+```bash
+uvx vox-mcp config set-default deepseek-flash
+uvx vox-mcp config show
+uvx vox-mcp config reset-default
+```
+
+For a source checkout, use `uv run vox-mcp config ...`. Preferences are stored in
+`~/.vox/config.json`; set `VOX_CONFIG_PATH` to use another file. This file contains
+model preferences, not API keys. Commands make no model requests and do not need
+provider credentials. Use `listmodels` in your connected MCP client to choose an
+available ID or alias. Explicit gateway routes such as
+`vercel/google/gemini-3.1-pro-preview` can also be saved. IDs are preserved exactly;
+saving a default does not verify your account's access to that model.
+
+Restart or reconnect Vox after changing settings. `config show` prints the saved
+default, effective default, and its source for the command's launch environment.
+The running MCP client's environment may differ; `listmodels` reports the default
+that its server actually loaded.
+
+Selection order is: explicit `chat.model`, the previous model for a continued
+thread, `DEFAULT_MODEL` from the server environment, the saved default, then `auto`.
+A saved default therefore changes new conversations; it does not switch existing
+threads. To override saved preferences for one MCP client, add
+`"DEFAULT_MODEL": "your-model-id"` to the Vox server's `env` object. Existing source
+checkout `.env` settings also retain their environment precedence. The automatically
+loaded `.env` belongs to the Vox installation, not the current directory; use the
+settings command or MCP client environment for `uvx` installations.
+
+With `auto`, the agent is asked to select a model for each call. If a caller passes
+`model: "auto"`, Vox uses its built-in provider priority and preferences; this is
+not a live comparison of all providers. Explicit model selections always remain
+available. A useful request to your agent is: “Use Vox listmodels to find my
+preferred model, save it as my default, and tell me how to reconnect Vox.”
 
 ## Cloudflare and Vercel AI Gateway
 

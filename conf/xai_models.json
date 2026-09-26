@@ -4,15 +4,83 @@
     "documentation": "https://github.com/linxule/vox-mcp",
     "usage": "Models listed here are exposed directly through the X.AI provider. Aliases are case-insensitive.",
     "field_notes": "Matches providers/shared/model_capabilities.py.",
-    "provenance": "Context windows, aliases, and the function-calling/structured-output/reasoning flags are taken from the model table xAI publishes at https://docs.x.ai/docs/models (maxPromptLength + ModelFeatures). grok-3, grok-4, and grok-3-fast were retired upstream and are no longer served.",
+    "provenance": "Refreshed 2026-09-26: https://docs.x.ai/developers/grok-4-7 and https://docs.x.ai/developers/model-capabilities/text/reasoning. Grok 4.7 is explicitly supported on Chat Completions. Versioned IDs remain distinct. Grok 4.6 Chat Completions documented at https://x.ai/api; native limits at https://docs.x.ai/developers/models/grok-4.6.",
     "max_output_tokens_note": "xAI does not publish a max-output-token limit for any Grok model, so the field is omitted rather than guessed. It only feeds the capability-rank bonus in ModelCapabilities.get_effective_capability_rank()."
   },
   "models": [
     {
+      "model_name": "grok-4.6",
+      "friendly_name": "X.AI (Grok 4.6)",
+      "aliases": [
+        "grok",
+        "grok4.6",
+        "grok46"
+      ],
+      "intelligence_score": 19,
+      "description": "Grok 4.6 - Default xAI model with vision and configurable reasoning (low/medium/high/xhigh)",
+      "context_window": 500000,
+      "supports_extended_thinking": true,
+      "thinking_constraint": "effort_level",
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "allow_code_generation": true,
+      "max_image_size_mb": 20.0,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ],
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "xhigh"
+      },
+      "default_thinking_mode": "high"
+    },
+    {
+      "model_name": "grok-4.7",
+      "friendly_name": "X.AI (Grok 4.7)",
+      "aliases": [
+        "grok4.7",
+        "grok47"
+      ],
+      "intelligence_score": 19,
+      "description": "Grok 4.7 - Current xAI flagship with vision and configurable reasoning (low/medium/high/xhigh)",
+      "context_window": 500000,
+      "supports_extended_thinking": true,
+      "thinking_constraint": "effort_level",
+      "supports_system_prompts": true,
+      "supports_streaming": true,
+      "supports_function_calling": true,
+      "supports_json_mode": true,
+      "supports_images": true,
+      "supports_temperature": true,
+      "allow_code_generation": true,
+      "max_image_size_mb": 20.0,
+      "unsupported_params": [
+        "frequency_penalty",
+        "presence_penalty",
+        "stop"
+      ],
+      "effort_map": {
+        "minimal": "low",
+        "low": "low",
+        "medium": "medium",
+        "high": "high",
+        "max": "xhigh"
+      },
+      "default_thinking_mode": "high"
+    },
+    {
       "model_name": "grok-4.5",
       "friendly_name": "X.AI (Grok 4.5)",
       "aliases": [
-        "grok",
         "grok4.5",
         "grok45"
       ],

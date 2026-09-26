@@ -6,6 +6,7 @@ import asyncio
 import importlib
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,10 @@ import pytest
 parent_dir = Path(__file__).resolve().parent.parent
 if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
+
+# Isolate settings before imports as well as during each test.
+_settings_import_dir = tempfile.TemporaryDirectory(prefix="vox-test-settings-")
+os.environ["VOX_CONFIG_PATH"] = str(Path(_settings_import_dir.name) / "config.json")
 
 import utils.env as env_config  # noqa: E402
 
@@ -61,6 +66,16 @@ def project_path(tmp_path):
     test_dir.mkdir(parents=True, exist_ok=True)
 
     return test_dir
+
+
+@pytest.fixture(autouse=True)
+def isolate_vox_settings(tmp_path, monkeypatch):
+    import model_settings
+
+    path = tmp_path / "vox-settings" / "config.json"
+    monkeypatch.setattr(model_settings, "_DEFAULT_CONFIG_PATH", str(path))
+    monkeypatch.setenv("VOX_CONFIG_PATH", str(path))
+    return path
 
 
 @pytest.fixture(autouse=True)

@@ -348,7 +348,7 @@ class OpenAICompatibleProvider(ModelProvider):
         return sanitized
 
     def _safe_extract_output_text(self, response) -> str:
-        """Safely extract output_text from o3-pro response with validation.
+        """Safely extract output_text from a Responses API response with validation.
 
         Args:
             response: Response object from OpenAI SDK
@@ -363,16 +363,17 @@ class OpenAICompatibleProvider(ModelProvider):
         logging.debug(f"Response attributes: {dir(response)}")
 
         if not hasattr(response, "output_text"):
-            raise ValueError(f"o3-pro response missing output_text field. Response type: {type(response).__name__}")
+            raise ValueError(
+                f"Responses API response missing output_text field. Response type: {type(response).__name__}"
+            )
 
         content = response.output_text
-        logging.debug(f"Extracted output_text: '{content}' (type: {type(content)})")
 
         if content is None:
-            raise ValueError("o3-pro returned None for output_text")
+            raise ValueError("Responses API returned None for output_text")
 
         if not isinstance(content, str):
-            raise ValueError(f"o3-pro output_text is not a string. Got type: {type(content).__name__}")
+            raise ValueError(f"Responses API output_text is not a string. Got type: {type(content).__name__}")
 
         return content
 
@@ -385,55 +386,42 @@ class OpenAICompatibleProvider(ModelProvider):
         capabilities: ModelCapabilities | None = None,
         **kwargs,
     ) -> ModelResponse:
-        """Generate content using the /v1/responses endpoint for reasoning models.
-
-        Note: the responses endpoint does not accept a temperature parameter, so
-        ``temperature`` is intentionally unused here.
-        """
-        # Convert messages to the correct format for responses endpoint
+        """Generate a stateless response, preserving message roles and image input."""
         input_messages = []
-
         for message in messages:
-            role = message.get("role", "")
+            role = message.get("role", "user")
             content = message.get("content", "")
+            if isinstance(content, str):
+                content = [{"type": "text", "text": content}]
+            converted = []
+            for item in content:
+                if item.get("type") == "text":
+                    converted.append(
+                        {"type": "output_text" if role == "assistant" else "input_text", "text": item["text"]}
+                    )
+                elif item.get("type") == "image_url":
+                    image = item["image_url"]
+                    converted.append(
+                        {"type": "input_image", "image_url": image["url"], "detail": image.get("detail", "auto")}
+                    )
+                else:
+                    raise ValueError(f"Unsupported Responses input content type: {item.get('type')!r}")
+            input_messages.append({"role": role, "content": converted})
 
-            if role == "system":
-                # For o3-pro, system messages should be handled carefully to avoid policy violations
-                # Instead of prefixing with "System:", we'll include the system content naturally
-                input_messages.append({"role": "user", "content": [{"type": "input_text", "text": content}]})
-            elif role == "user":
-                input_messages.append({"role": "user", "content": [{"type": "input_text", "text": content}]})
-            elif role == "assistant":
-                input_messages.append({"role": "assistant", "content": [{"type": "output_text", "text": content}]})
-
-        # Resolve reasoning effort from the model's ThinkingConstraint.
-        # Falls back to capabilities.default_reasoning_effort, then "medium".
+        completion_params = {"model": model_name, "input": input_messages, "store": False}
+        # An omitted setting stays omitted: the provider owns its reasoning default.
         thinking_mode = kwargs.pop("thinking_mode", None)
-        reasoning_params: dict = {}
-        if capabilities:
+        if capabilities and thinking_mode is not None:
             thinking_params = capabilities.get_effective_thinking_params(thinking_mode)
             if thinking_params and "effort" in thinking_params:
-                reasoning_params = thinking_params
-        if not reasoning_params:
-            # Fallback: use legacy default_reasoning_effort field
-            effort = "medium"
-            if capabilities and capabilities.default_reasoning_effort:
-                effort = capabilities.default_reasoning_effort
-            reasoning_params = {"effort": effort}
-
-        completion_params = {
-            "model": model_name,
-            "input": input_messages,
-            "reasoning": reasoning_params,
-            "store": True,
-        }
-
-        # Add max tokens if specified (using max_completion_tokens for responses endpoint)
-        if max_output_tokens:
-            completion_params["max_completion_tokens"] = max_output_tokens
-
-        # For responses endpoint, we only add parameters that are explicitly supported
-        # Remove unsupported chat completion parameters that may cause API errors
+                completion_params["reasoning"] = thinking_params
+        if max_output_tokens is not None:
+            completion_params["max_output_tokens"] = max_output_tokens
+        if temperature is not None:
+            completion_params["temperature"] = temperature
+        unsupported_params = set(capabilities.unsupported_params or []) if capabilities else set()
+        if "top_p" in kwargs and "top_p" not in unsupported_params:
+            completion_params["top_p"] = kwargs["top_p"]
 
         # Retry logic with progressive delays
         max_retries = 4
@@ -442,12 +430,7 @@ class OpenAICompatibleProvider(ModelProvider):
 
         def _attempt() -> ModelResponse:
             attempt_counter["value"] += 1
-            import json
-
-            sanitized_params = self._sanitize_for_logging(completion_params)
-            logging.info(
-                f"o3-pro API request (sanitized): {json.dumps(sanitized_params, indent=2, ensure_ascii=False)}"
-            )
+            logging.debug("Responses API request: model=%s, input_messages=%s", model_name, len(input_messages))
 
             response = self.client.responses.create(**completion_params)
 
@@ -539,7 +522,10 @@ class OpenAICompatibleProvider(ModelProvider):
         # same on the wire. The distinction exists for the integrity gate, not here.
         unsupported_params = set(capabilities.unsupported_params or []) if capabilities else set()
 
-        model_accepts_max_tokens = "max_tokens" not in unsupported_params
+        output_token_parameter = capabilities.output_token_parameter if capabilities else "max_tokens"
+        if output_token_parameter not in {"max_tokens", "max_completion_tokens"}:
+            raise ValueError(f"Unsupported output token parameter: {output_token_parameter}")
+        model_accepts_max_tokens = output_token_parameter not in unsupported_params
 
         # Resolve the temperature to actually send. ``None`` means omit it (the
         # caller did not specify one, or the model does not accept it) so the
@@ -609,11 +595,9 @@ class OpenAICompatibleProvider(ModelProvider):
         if effective_temperature is not None:
             completion_params["temperature"] = effective_temperature
 
-        # Add max tokens if specified and the model supports sampling params.
-        # O3/O4 reasoning models that don't support temperature also don't
-        # support max_tokens on chat/completions.
+        # Send the model-specific Chat Completions token-limit parameter.
         if max_output_tokens and model_accepts_max_tokens:
-            completion_params["max_tokens"] = max_output_tokens
+            completion_params[output_token_parameter] = max_output_tokens
 
         # Extract thinking_mode before processing remaining kwargs
         thinking_mode = kwargs.pop("thinking_mode", None)
@@ -643,19 +627,19 @@ class OpenAICompatibleProvider(ModelProvider):
                 use_responses_api = getattr(static_capabilities, "use_openai_response_api", False)
 
         if use_responses_api:
-            # These models require the /v1/responses endpoint for stateful context
-            # If it fails, we should not fall back to chat/completions
+            # Respect the configured endpoint; never retry on a different API.
             return self._generate_with_responses_endpoint(
                 model_name=resolved_model,
                 messages=messages,
-                temperature=temperature,
+                temperature=effective_temperature,
                 max_output_tokens=max_output_tokens,
                 capabilities=capabilities,
                 thinking_mode=thinking_mode,
+                **kwargs,
             )
 
         # For chat completions: add reasoning_effort if the model supports reasoning
-        if capabilities and capabilities.supports_extended_thinking:
+        if capabilities and capabilities.supports_extended_thinking and thinking_mode is not None:
             thinking_params = capabilities.get_effective_thinking_params(thinking_mode)
             if thinking_params and "effort" in thinking_params:
                 completion_params["reasoning_effort"] = thinking_params["effort"]
@@ -742,8 +726,12 @@ class OpenAICompatibleProvider(ModelProvider):
 
         if hasattr(response, "usage") and response.usage:
             # Safely extract token counts with None handling
-            usage["input_tokens"] = getattr(response.usage, "prompt_tokens", 0) or 0
-            usage["output_tokens"] = getattr(response.usage, "completion_tokens", 0) or 0
+            usage["input_tokens"] = (
+                getattr(response.usage, "prompt_tokens", getattr(response.usage, "input_tokens", 0)) or 0
+            )
+            usage["output_tokens"] = (
+                getattr(response.usage, "completion_tokens", getattr(response.usage, "output_tokens", 0)) or 0
+            )
             usage["total_tokens"] = getattr(response.usage, "total_tokens", 0) or 0
 
         return usage

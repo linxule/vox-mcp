@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 — 2026-09-26
+
+- Refresh native catalogs and curated OpenRouter routes. Preferred native models are GPT-6 Astra, Kimi K3, Grok 4.6, Claude Opus 5.5 (then Fable 5.1), DeepSeek V4.1 Flash, and Gemini 3.8 Flash / 3.1 Pro Preview. Keep GPT-6 Sol/Luna and Grok 4.7 explicitly selectable. Preserve Claude 3 Opus and historical versioned selections; remove retired Gemini 2.0 models and label 2.5 as legacy.
+- Add `vox-mcp config set-default MODEL`, `config show`, and `config reset-default`, using non-secret local settings with environment precedence. Commands work without credentials; reconnect to apply changes. `listmodels` reports the loaded default and source. Existing threads retain their selected model.
+- Preserve provider reasoning defaults when thinking mode is omitted, including through the MCP tool path. Add model-specific effort mappings and Kimi K3 output-token handling.
+- Fix OpenAI Responses image serialization, output caps, token accounting, and stateless requests. Forward validated images to Anthropic instead of silently dropping them; give OpenRouter vision entries an explicit local image budget.
+- Add request-shape, MCP dispatch, image, preference, settings isolation, and packaging regressions. Provider documentation and exact route distinctions are recorded in MODEL_SELECTION.md. Validation uses mocked inference; account-specific access is not verified.
+
 ## 0.7.0 — 2026-09-26
 
 - Add explicit Cloudflare and Vercel AI Gateway routes, optional model catalogs and allowlists, gateway-only startup, and configuration metadata. Cloudflare uses its current account REST API; Vercel uses its OpenAI-compatible Chat Completions API. Gateway model IDs remain intact in conversation memory.

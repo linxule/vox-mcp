@@ -126,7 +126,7 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         system_prompt: str | None = None,
         temperature: float | None = None,
         max_output_tokens: int | None = None,
-        thinking_mode: str = "medium",
+        thinking_mode: str | None = None,
         images: list[str] | None = None,
         **kwargs,
     ) -> ModelResponse:
@@ -137,9 +137,9 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
             prompt: The main user prompt/query to send to the model
             model_name: Canonical model name or its alias (e.g., "gemini-2.5-pro", "flash", "gemini-3.1")
             system_prompt: Optional system instructions to prepend to the prompt for context/behavior
-            temperature: Controls randomness in generation (0.0=deterministic, 1.0=creative), default 0.3
+            temperature: Optional sampling temperature; omitted by default.
             max_output_tokens: Optional maximum number of tokens to generate in the response
-            thinking_mode: Thinking budget level for models that support it ("minimal", "low", "medium", "high", "max"), default "medium"
+            thinking_mode: Optional thinking level ("minimal", "low", "medium", "high", "max"); omitted by default.
             images: Optional list of image paths or data URLs to include with the prompt (for vision models)
             **kwargs: Additional keyword arguments (reserved for future use)
 
@@ -231,11 +231,11 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         if resolved_model_name.startswith("gemini-3"):
             # Gemini 3+ uses thinking_level (string) instead of thinking_budget (int)
             # Map thinking_mode to thinking_level (no "max" in ThinkingLevel, map to "high")
-            level_map = {"minimal": "minimal", "low": "low", "medium": "medium", "high": "high", "max": "high"}
-            level = level_map.get(thinking_mode, "high")
+            level = self._resolve_thinking_level(resolved_model_name, thinking_mode, capabilities)
             effective_thinking_mode = level
-            generation_config.thinking_config = types.ThinkingConfig(thinking_level=level)
-        else:
+            if level is not None:
+                generation_config.thinking_config = types.ThinkingConfig(thinking_level=level)
+        elif thinking_mode is not None:
             # Gemini 2.x uses token-based thinking budget
             thinking_params = capabilities.get_effective_thinking_params(effective_thinking_mode)
             if thinking_params and "thinking_budget" in thinking_params:
@@ -379,13 +379,13 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
         surface), so this must run for Gemini 2.x as well as Gemini 3 — otherwise
         2.x thinking is silently dropped. Allowed levels differ by tier (verified
         against the live API): Gemini 2.x accepts only low/high; Gemini 3 accepts
-        low/medium/high (``minimal`` is Flash-only, so it is mapped to ``low`` to
-        stay valid across pro+flash). ``max`` collapses to ``high``. Returns None
-        for models without extended thinking (omit the field).
+        low/medium/high (3.1 Pro and 3.8 Flash reject ``minimal``, so it maps
+        to ``low``). ``max`` collapses to ``high``. Returns None
+        for an omitted mode or models without extended thinking (omit the field).
         """
-        if not getattr(capabilities, "supports_extended_thinking", False):
+        if thinking_mode is None or not getattr(capabilities, "supports_extended_thinking", False):
             return None
-        mode = (thinking_mode or "medium").lower()
+        mode = thinking_mode.lower()
         if resolved_model_name.startswith("gemini-3"):
             return {"minimal": "low", "low": "low", "medium": "medium", "high": "high", "max": "high"}.get(mode, "high")
         # Gemini 2.x: only low/high are accepted on the Interactions API.
@@ -629,6 +629,17 @@ class GeminiModelProvider(RegistryBackedProviderMixin, ModelProvider):
             return None
 
         capability_map = self.get_all_model_capabilities()
+
+        # Explicit preferences avoid lexicographic version ordering and keep
+        # legacy-access-only models out of defaults while respecting allowlists.
+        preferred = (
+            ("gemini-3.1-pro-preview", "gemini-3.8-flash")
+            if category == ToolModelCategory.EXTENDED_REASONING
+            else ("gemini-3.8-flash", "gemini-3.1-pro-preview")
+        )
+        for model in preferred:
+            if model in allowed_models:
+                return model
 
         # Helper to find best model from candidates
         def find_best(candidates: list[str]) -> str | None:

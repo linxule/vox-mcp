@@ -79,7 +79,7 @@ class TestOpenRouterProvider:
         provider = OpenRouterProvider(api_key="test-key")
 
         # Test alias resolution
-        assert provider._resolve_model_name("opus") == "anthropic/claude-opus-4.8"
+        assert provider._resolve_model_name("opus") == "anthropic/claude-opus-5.5"
         assert provider._resolve_model_name("sonnet") == "anthropic/claude-sonnet-5"
         assert provider._resolve_model_name("o3") == "openai/o3"
         assert provider._resolve_model_name("o3-mini") == "openai/o3-mini"
@@ -93,13 +93,13 @@ class TestOpenRouterProvider:
         assert provider._resolve_model_name("mistral") == "mistralai/mistral-large-2512"
         assert provider._resolve_model_name("grok-4.5") == "x-ai/grok-4.5"
         assert provider._resolve_model_name("grok45") == "x-ai/grok-4.5"
-        assert provider._resolve_model_name("grok") == "x-ai/grok-4.5"
+        assert provider._resolve_model_name("grok") == "x-ai/grok-4.6"
         assert provider._resolve_model_name("grok43") == "x-ai/grok-4.3"
-        assert provider._resolve_model_name("deepseek") == "deepseek/deepseek-r1-0528"
+        assert provider._resolve_model_name("deepseek") == "deepseek/deepseek-v4.1-flash"
         assert provider._resolve_model_name("r1") == "deepseek/deepseek-r1-0528"
 
         # Test case-insensitive
-        assert provider._resolve_model_name("OPUS") == "anthropic/claude-opus-4.8"
+        assert provider._resolve_model_name("OPUS") == "anthropic/claude-opus-5.5"
         assert provider._resolve_model_name("SONNET") == "anthropic/claude-sonnet-5"
         assert provider._resolve_model_name("O3") == "openai/o3"
         assert provider._resolve_model_name("Mistral") == "mistralai/mistral-large-2512"
@@ -311,7 +311,7 @@ class TestOpenRouterRegistry:
         # Test known model
         caps = registry.get_capabilities("opus")
         assert caps is not None
-        assert caps.model_name == "anthropic/claude-opus-4.8"
+        assert caps.model_name == "anthropic/claude-opus-5.5"
         assert caps.context_window == 1000000  # Claude Opus 4.8 context window
 
         # Test using full model name
