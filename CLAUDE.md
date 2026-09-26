@@ -176,3 +176,10 @@ Guard: `tests/test_concurrency_event_loop.py`.
 - Thinking mode requires `extra_body={'thinking': {'type': 'enabled'}}` (single endpoint with toggle, defaults on)
 - Temperature is ignored when thinking is enabled
 - API endpoint: `api.deepseek.com`
+
+### Cloudflare and Vercel AI Gateway
+
+- `providers/gateway.py` exposes explicit `cloudflare/<provider>/<model>` and `vercel/<provider>/<model>` routes. Never fall through to another provider for these prefixes.
+- Cloudflare uses the account REST API with bearer auth and `cf-aig-gateway-id`; token requires Workers AI Read. Vercel uses its OpenAI-compatible `/v1` endpoint. See README for environment variables.
+- Catalogs come from `CLOUDFLARE_MODELS` / `VERCEL_MODELS`, without network discovery. The integrity gate exercises this fourth declaration mechanism through the real parser with synthetic offline IDs.
+- Gateway capabilities are conservative local estimates, not upstream promises. Text only, no inferred thinking mapping, no fabricated sampling parameters. Persist the Vox route while stripping its prefix only for the wire model ID.

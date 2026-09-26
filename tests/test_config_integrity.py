@@ -57,11 +57,13 @@ a provider that yields no capabilities fails the suite instead of being skipped.
 import importlib
 import inspect
 import pkgutil
+from unittest.mock import patch
 
 import pytest
 
 import providers
 from providers.base import ModelProvider
+from providers.gateway import _GatewayProvider
 from providers.openai_compatible import OpenAICompatibleProvider
 from providers.registries.base import CustomModelRegistryBase
 from providers.registry_provider_mixin import RegistryBackedProviderMixin
@@ -70,7 +72,7 @@ from providers.shared import ModelCapabilities, ProviderType
 # The two abstract layers every concrete provider inherits from. Named rather than
 # detected because `inspect.isabstract` returns False for them (they have no
 # unimplemented abstractmethods), so they would otherwise be mistaken for providers.
-ABSTRACT_BASES = {"ModelProvider", "OpenAICompatibleProvider"}
+ABSTRACT_BASES = {"ModelProvider", "OpenAICompatibleProvider", "_GatewayProvider"}
 
 
 def _discover_provider_classes() -> list[type[ModelProvider]]:
@@ -107,6 +109,14 @@ def _effective_capabilities(provider: type) -> dict[str, ModelCapabilities]:
     turns it into a failure, so a new mechanism announces itself instead of quietly
     shrinking the gate's reach.
     """
+    if issubclass(provider, _GatewayProvider):
+        # Mechanism 4: operator-configured gateway catalogs. Exercise the real
+        # parser and capability builder offline, without asserting a fictitious
+        # upstream model exists or silently skipping providers with empty defaults.
+        settings = {provider.MODELS_ENV: "author/model", "CLOUDFLARE_ACCOUNT_ID": "test-account"}
+        with patch("providers.gateway.get_env", side_effect=lambda name, default=None: settings.get(name, default)):
+            return provider(api_key="test-only").get_all_model_capabilities()
+
     if issubclass(provider, RegistryBackedProviderMixin):
         provider._ensure_registry()  # mechanism 1: populate the class dict from conf/
 

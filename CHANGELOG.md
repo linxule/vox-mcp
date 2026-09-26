@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 — 2026-09-26
+
+- Add explicit Cloudflare and Vercel AI Gateway routes, optional model catalogs and allowlists, gateway-only startup, and configuration metadata. Cloudflare uses its current account REST API; Vercel uses its OpenAI-compatible Chat Completions API. Gateway model IDs remain intact in conversation memory.
+- Isolate each chat execution so overlapping requests cannot exchange model metadata or file context. Serialize continuations within one conversation, and save successful exchanges only after provider completion so failed requests do not pollute history.
+- Include newly attached continuation files in provider prompts; treat literal history markers as user text and prevent callers from forging internal request metadata. Reject continuations without space for a complete exchange and reject unsupported explicit gateway thinking controls before inference.
+- Fix startup when Anthropic, Moonshot, or DeepSeek is the only configured provider.
+- Keep HTTP proxy isolation local to each client and preserve routing headers; remove a client-construction fallback that could silently drop gateway selection.
+- Update Google GenAI to 2.25.0 and Ruff to 0.16.9. Bound Google GenAI and Pydantic to their supported major versions.
+- Add offline HTTP, routing, restriction, startup, conversation concurrency, and failed-request regressions. Gateway support is text-only with explicitly labelled local token estimates; live paid inference is not part of release validation.
+
 ## 0.6.0 — 2026-09-14
 
 ### Breaking

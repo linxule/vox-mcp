@@ -26,6 +26,7 @@ import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
+from weakref import WeakValueDictionary
 
 from mcp.server import Server  # noqa: E402
 from mcp.server.models import InitializationOptions  # noqa: E402
@@ -251,7 +252,7 @@ def configure_providers():
     Configure and validate AI providers based on available API keys.
 
     This function checks for API keys and registers the appropriate providers.
-    At least one valid API key (Gemini or OpenAI) is required.
+    At least one configured provider is required.
 
     Raises:
         ValueError: If no valid API keys are found or conflicting configurations detected
@@ -266,6 +267,7 @@ def configure_providers():
     from providers.anthropic import AnthropicModelProvider
     from providers.custom import CustomProvider
     from providers.deepseek import DeepSeekProvider
+    from providers.gateway import CloudflareGatewayProvider, VercelGatewayProvider
     from providers.gemini import GeminiModelProvider
     from providers.moonshot import MoonshotProvider
     from providers.openai import OpenAIModelProvider
@@ -354,18 +356,21 @@ def configure_providers():
     anthropic_key = get_env("ANTHROPIC_API_KEY")
     if anthropic_key and anthropic_key != "your_anthropic_api_key_here":
         ModelProviderRegistry.register_provider(ProviderType.ANTHROPIC, AnthropicModelProvider)
+        valid_providers.append("Anthropic")
         registered_providers.append(ProviderType.ANTHROPIC.value)
         logger.debug(f"Registered provider: {ProviderType.ANTHROPIC.value}")
 
     moonshot_key = get_env("MOONSHOT_API_KEY")
     if moonshot_key and moonshot_key != "your_moonshot_api_key_here":
         ModelProviderRegistry.register_provider(ProviderType.MOONSHOT, MoonshotProvider)
+        valid_providers.append("Moonshot")
         registered_providers.append(ProviderType.MOONSHOT.value)
         logger.debug(f"Registered provider: {ProviderType.MOONSHOT.value}")
 
     deepseek_key = get_env("DEEPSEEK_API_KEY")
     if deepseek_key and deepseek_key != "your_deepseek_api_key_here":
         ModelProviderRegistry.register_provider(ProviderType.DEEPSEEK, DeepSeekProvider)
+        valid_providers.append("DeepSeek")
         registered_providers.append(ProviderType.DEEPSEEK.value)
         logger.debug(f"Registered provider: {ProviderType.DEEPSEEK.value}")
 
@@ -387,6 +392,21 @@ def configure_providers():
         registered_providers.append(ProviderType.OPENROUTER.value)
         logger.debug(f"Registered provider: {ProviderType.OPENROUTER.value}")
 
+    cloudflare_key = get_env("CLOUDFLARE_API_TOKEN")
+    cloudflare_account = get_env("CLOUDFLARE_ACCOUNT_ID")
+    if cloudflare_key and cloudflare_account:
+        ModelProviderRegistry.register_provider(ProviderType.CLOUDFLARE, CloudflareGatewayProvider)
+        valid_providers.append("Cloudflare AI Gateway")
+        registered_providers.append(ProviderType.CLOUDFLARE.value)
+    elif cloudflare_key or cloudflare_account:
+        logger.warning("Cloudflare AI Gateway requires both CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID")
+
+    vercel_key = get_env("VERCEL_AI_GATEWAY_API_KEY") or get_env("AI_GATEWAY_API_KEY")
+    if vercel_key:
+        ModelProviderRegistry.register_provider(ProviderType.VERCEL, VercelGatewayProvider)
+        valid_providers.append("Vercel AI Gateway")
+        registered_providers.append(ProviderType.VERCEL.value)
+
     # Log all registered providers
     if registered_providers:
         logger.info(f"Registered providers: {', '.join(registered_providers)}")
@@ -399,6 +419,9 @@ def configure_providers():
             "- OPENAI_API_KEY for OpenAI models\n"
             "- XAI_API_KEY for X.AI GROK models\n"
             "- OPENROUTER_API_KEY for OpenRouter (multiple models)\n"
+            "- ANTHROPIC_API_KEY, MOONSHOT_API_KEY, or DEEPSEEK_API_KEY for native providers\n"
+            "- CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID for Cloudflare AI Gateway\n"
+            "- VERCEL_AI_GATEWAY_API_KEY (or AI_GATEWAY_API_KEY) for Vercel AI Gateway\n"
             "- CUSTOM_API_URL for local models (Ollama, vLLM, etc.)"
         )
 
@@ -411,8 +434,8 @@ def configure_providers():
     def cleanup_providers():
         """Clean up all registered providers on shutdown."""
         try:
-            registry = ModelProviderRegistry()
-            if hasattr(registry, "_initialized_providers"):
+            registry = ModelProviderRegistry._instance
+            if registry is not None and hasattr(registry, "_initialized_providers"):
                 # Iterate over provider instances (values), not (type, instance) tuples
                 for provider in list(registry._initialized_providers.values()):
                     try:
@@ -457,7 +480,11 @@ def configure_providers():
 
     if IS_AUTO_MODE:
         available_models = ModelProviderRegistry.get_available_models(respect_restrictions=True)
-        if not available_models:
+        has_explicit_gateway = any(
+            ModelProviderRegistry.get_provider(provider_type) is not None
+            for provider_type in (ProviderType.CLOUDFLARE, ProviderType.VERCEL)
+        )
+        if not available_models and not has_explicit_gateway:
             logger.error(
                 "Auto mode is enabled but no models are available after applying restrictions. "
                 "Please check your OPENAI_ALLOWED_MODELS and GOOGLE_ALLOWED_MODELS settings."
@@ -525,8 +552,28 @@ async def handle_list_tools() -> list[Tool]:
     return tools
 
 
+_continuation_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
+
+
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+    """Serialize a thread's exchanges without blocking unrelated conversations."""
+    if name not in TOOLS:
+        raise ToolExecutionError(f"Unknown tool: {name}")
+    # Internal context is generated only by this dispatcher. MCP callers must
+    # not forge history, provider objects, or prompt-validation bookkeeping.
+    arguments = {key: value for key, value in arguments.items() if not key.startswith("_")}
+    continuation_id = arguments.get("continuation_id")
+    if isinstance(continuation_id, str) and continuation_id:
+        # The local reference keeps the lock alive while holders/waiters use it.
+        # Idle locks disappear automatically, so old thread IDs cannot accumulate.
+        lock = _continuation_locks.setdefault(continuation_id, asyncio.Lock())
+        async with lock:
+            return await _handle_call_tool(name, arguments.copy())
+    return await _handle_call_tool(name, arguments.copy())
+
+
+async def _handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """
     Handle incoming tool execution requests from MCP clients.
 
@@ -724,6 +771,10 @@ def parse_model_option(model_string: str) -> tuple[str, str | None]:
     Returns:
         tuple: (model_name, option) where option may be None
     """
+    # Gateway IDs are opaque upstream identifiers, including any version suffix.
+    # Only the gateway adapter may remove its routing prefix at the HTTP boundary.
+    if model_string.strip().split("/", 1)[0].lower() in {"cloudflare", "vercel"}:
+        return model_string.strip(), None
     if ":" in model_string and not model_string.startswith("http"):  # Avoid parsing URLs
         # Check if this looks like an OpenRouter model (contains /)
         if "/" in model_string and model_string.count(":") == 1:
@@ -819,7 +870,8 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
         3. The next tool receives full context including previous file analysis
         4. Natural cross-tool collaboration continues without context loss
     """
-    from utils.conversation_memory import add_turn, build_conversation_history, get_thread
+    from utils.conversation_memory import build_conversation_history, get_thread
+    from utils.token_utils import estimate_tokens
 
     continuation_id = arguments["continuation_id"]
 
@@ -847,25 +899,9 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
             f"This will create a new conversation thread that can continue with follow-up exchanges."
         )
 
-    # Add user's new input to the conversation
-    user_prompt = arguments.get("prompt", "")
-    if user_prompt:
-        # Capture files referenced in this turn
-        user_files = arguments.get("absolute_file_paths") or []
-        logger.debug(f"[CONVERSATION_DEBUG] Adding user turn to thread {continuation_id}")
-        from utils.token_utils import estimate_tokens
-
-        user_prompt_tokens = estimate_tokens(user_prompt)
-        logger.debug(
-            f"[CONVERSATION_DEBUG] User prompt length: {len(user_prompt)} chars (~{user_prompt_tokens:,} tokens)"
-        )
-        logger.debug(f"[CONVERSATION_DEBUG] User files: {user_files}")
-        success = add_turn(continuation_id, "user", user_prompt, files=user_files)
-        if not success:
-            logger.warning(f"Failed to add user turn to thread {continuation_id}")
-            logger.debug("[CONVERSATION_DEBUG] Failed to add user turn - thread may be at turn limit or expired")
-        else:
-            logger.debug(f"[CONVERSATION_DEBUG] Successfully added user turn to thread {continuation_id}")
+    # Reconstruction is read-only. The completed exchange is recorded by the
+    # tool after validation and provider success, leaving failed requests out
+    # of both in-memory history and the durable JSONL archive.
 
     # Create model context early to use for history building
     from utils.model_context import ModelContext
@@ -1008,6 +1044,7 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
     enhanced_arguments["prompt"] = enhanced_prompt
     # Store the original user prompt separately for size validation
     enhanced_arguments["_original_user_prompt"] = original_prompt
+    enhanced_arguments["_conversation_history"] = conversation_history
     logger.debug("[CONVERSATION_DEBUG] Storing enhanced prompt in 'prompt' field")
     logger.debug("[CONVERSATION_DEBUG] Storing original user prompt in '_original_user_prompt' field")
 

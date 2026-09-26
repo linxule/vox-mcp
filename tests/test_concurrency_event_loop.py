@@ -15,6 +15,8 @@ This test fails (heartbeat frozen, elapsed ~2x) if the offload is removed.
 """
 
 import asyncio
+import json
+import threading
 import time
 from unittest.mock import Mock
 
@@ -83,8 +85,9 @@ async def test_blocking_provider_call_does_not_freeze_event_loop():
     await asyncio.sleep(0.02)  # establish a baseline
     ticks_before = ticks
 
+    tool = ChatTool()
+
     async def run_one():
-        tool = ChatTool()
         return await tool.execute(
             {
                 "prompt": "hello",
@@ -114,3 +117,55 @@ async def test_blocking_provider_call_does_not_freeze_event_loop():
     # Two 0.5s blocking calls run concurrently in worker threads finish in ~0.5s,
     # not ~1.0s (which inline serial execution on the loop would produce).
     assert elapsed < BLOCK_SECONDS * 1.8, f"calls did not run concurrently (elapsed {elapsed:.2f}s)"
+
+
+@pytest.mark.asyncio
+async def test_shared_tool_preserves_each_requests_model_and_thread(tmp_path, monkeypatch):
+    """The production singleton must not label one model's answer as another."""
+    import config
+    from utils.conversation_memory import get_thread
+
+    monkeypatch.setattr(config, "VOX_THREADS_DIR", tmp_path)
+    tool = ChatTool()
+    both_started = threading.Barrier(2)
+
+    def make_context(model_name):
+        provider, caps = _make_blocking_provider()
+        caps.model_name = model_name
+
+        def generate(**kwargs):
+            # Neither response returns until both calls have entered the worker
+            # pool, guaranteeing overlapping execution without timing guesses.
+            both_started.wait(timeout=5)
+            assert kwargs["model_name"] == model_name
+            response = Mock()
+            response.content = f"answer from {model_name}"
+            response.usage = {"input_tokens": 1, "output_tokens": 1}
+            response.metadata = {"finish_reason": "STOP"}
+            return response
+
+        provider.generate_content.side_effect = generate
+        context = _model_context(provider, caps)
+        context.model_name = model_name
+        return context
+
+    models = ["model-a", "model-b"]
+    results = await asyncio.gather(
+        *(
+            tool.execute({"prompt": f"question for {name}", "model": name, "_model_context": make_context(name)})
+            for name in models
+        )
+    )
+
+    thread_ids = []
+    for name, result in zip(models, results, strict=True):
+        payload = json.loads(result[0].text)
+        assert payload["content"] == f"answer from {name}"
+        assert payload["metadata"]["model_used"] == name
+        thread_id = payload["continuation_offer"]["continuation_id"]
+        thread_ids.append(thread_id)
+        thread = get_thread(thread_id)
+        assert thread.turns[0].content == f"question for {name}"
+        assert thread.turns[-1].model_name == name
+        assert thread.turns[-1].content == f"answer from {name}"
+    assert len(set(thread_ids)) == 2

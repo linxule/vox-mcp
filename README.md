@@ -20,7 +20,7 @@ Send a prompt, optionally attach files or images, pick a model (or let the agent
 | `listmodels` | Show available models, aliases, and capabilities |
 | `dump_threads` | Export conversation threads as JSON or Markdown |
 
-**8 providers:**
+**10 providers:**
 
 | Provider | Env Variable | Example Models |
 |----------|-------------|----------------|
@@ -31,6 +31,8 @@ Send a prompt, optionally attach files or images, pick a model (or let the agent
 | DeepSeek | `DEEPSEEK_API_KEY` | deepseek-v4-pro |
 | Moonshot (Kimi) | `MOONSHOT_API_KEY` | kimi-k2.6 |
 | OpenRouter | `OPENROUTER_API_KEY` | Any OpenRouter model |
+| Cloudflare AI Gateway | `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | `cloudflare/openai/gpt-5.5` |
+| Vercel AI Gateway | `VERCEL_AI_GATEWAY_API_KEY` or `AI_GATEWAY_API_KEY` | `vercel/anthropic/claude-sonnet-4.6` |
 | Custom | `CUSTOM_API_URL` | Ollama, vLLM, LM Studio, etc. |
 
 ## Quick start
@@ -166,6 +168,69 @@ Copy `.env.example` to `.env` and configure:
 - **`MAX_CONVERSATION_TURNS`** — thread length limit (default: 100)
 
 See `.env.example` for the full reference.
+
+## Cloudflare and Vercel AI Gateway
+
+Use an explicit gateway prefix in `chat.model`. Vox removes only that first prefix
+before sending the request and keeps it in conversation memory. A missing gateway
+configuration or disallowed model fails without falling through to OpenRouter or a
+native provider. Bare model names keep their existing routing behavior.
+
+### Cloudflare
+
+```dotenv
+CLOUDFLARE_API_TOKEN=your-cloudflare-token
+CLOUDFLARE_ACCOUNT_ID=your-account-id
+CLOUDFLARE_GATEWAY_ID=default
+CLOUDFLARE_MODELS=openai/gpt-5.5
+```
+
+```json
+{"prompt": "Explain quorum consensus.", "model": "cloudflare/openai/gpt-5.5"}
+```
+
+Vox uses the [Cloudflare account REST API](https://developers.cloudflare.com/ai-gateway/usage/rest-api/)
+at `https://api.cloudflare.com/client/v4/accounts/<account>/ai/v1`, authenticates
+with a bearer token, and sets `cf-aig-gateway-id` (`default` unless configured).
+The token needs **Workers AI Read** permission; an AI Gateway-only token is not
+sufficient. Third-party models use Cloudflare Unified Billing. Workers AI model
+IDs retain their `@cf/` prefix, for example `cloudflare/@cf/moonshotai/kimi-k2.6`.
+Legacy `/compat`, provider-key forwarding, and `dynamic/` routes are not supported
+by this adapter.
+
+### Vercel
+
+```dotenv
+VERCEL_AI_GATEWAY_API_KEY=your-vercel-gateway-key
+VERCEL_MODELS=anthropic/claude-sonnet-4.6
+```
+
+```json
+{"prompt": "Explain quorum consensus.", "model": "vercel/anthropic/claude-sonnet-4.6"}
+```
+
+Vox uses [Vercel's OpenAI-compatible API](https://vercel.com/docs/ai-gateway/sdks-and-apis/python)
+at `https://ai-gateway.vercel.sh/v1`. `AI_GATEWAY_API_KEY` is also accepted;
+`VERCEL_AI_GATEWAY_API_KEY` takes precedence when both are set.
+
+### Catalogs and limits
+
+`CLOUDFLARE_MODELS` and `VERCEL_MODELS` are optional comma-separated upstream IDs
+for `listmodels` and agent discovery. They do not restrict access. Explicit gateway
+model IDs work without a catalog, including with the default `DEFAULT_MODEL=auto`;
+the caller must supply the gateway model. Use `CLOUDFLARE_ALLOWED_MODELS` or
+`VERCEL_ALLOWED_MODELS` to restrict access. Both upstream IDs and fully prefixed
+Vox routes are accepted in catalogs and allowlists. Use the exact model ID
+published by the gateway; native-provider and gateway IDs can differ.
+
+Gateway requests currently support **text only**. Vox does not infer vision or
+thinking controls from a model name; explicit gateway `thinking_mode` requests are
+rejected before inference. Its 32,768-token context and 4,096-token output
+budgets are conservative local estimates, not advertised upstream limits; these
+numbers are not sent as generation parameters. Omitted temperature and reasoning
+settings use upstream defaults. No catalog or model availability request is made
+at startup. The adapters are covered by mocked HTTP tests; live inference requires
+a configured account and has not been exercised as part of the release checks.
 
 ## Development
 

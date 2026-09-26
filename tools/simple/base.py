@@ -14,6 +14,7 @@ capabilities from BaseTool.
 
 import asyncio
 from abc import abstractmethod
+from copy import copy
 from typing import Any
 
 from tools.shared.base_models import ToolRequest
@@ -272,6 +273,18 @@ class SimpleTool(BaseTool):
             return []
 
     async def execute(self, arguments: dict[str, Any]) -> list:
+        """Run with request-local state while allowing concurrent provider calls.
+
+        The server reuses one tool instance for every request. Helpers keep
+        request context on ``self``, so each execution needs its own instance
+        before it yields to another request. Preserve configured metadata and
+        hooks while isolating mutable request state.
+        """
+        execution = copy(self)
+        execution._actually_processed_files = []
+        return await execution._execute_request(arguments.copy())
+
+    async def _execute_request(self, arguments: dict[str, Any]) -> list:
         """
         Execute the simple tool using the comprehensive flow from old base.py.
 
@@ -332,38 +345,43 @@ class SimpleTool(BaseTool):
             # Get images if present
             images = self.get_request_images(request)
             continuation_id = self.get_request_continuation_id(request)
+            if continuation_id:
+                from utils.conversation_memory import MAX_CONVERSATION_TURNS, get_thread
+
+                thread_context = get_thread(continuation_id)
+                if thread_context and len(thread_context.turns) + 2 > MAX_CONVERSATION_TURNS:
+                    raise ValueError(
+                        "Conversation turn limit reached; start a new conversation without continuation_id"
+                    )
 
             # Handle conversation history and prompt preparation
             if continuation_id:
-                # Check if conversation history is already embedded
-                field_value = self.get_request_prompt(request)
-                if "=== CONVERSATION HISTORY" in field_value:
-                    # Use pre-embedded history
-                    prompt = field_value
-                    logger.debug(f"{self.get_name()}: Using pre-embedded conversation history")
+                # Trust internal dispatcher context, never a marker in user text.
+                if "_conversation_history" in arguments:
+                    conversation_history = arguments["_conversation_history"]
+                    request.prompt = arguments["_original_user_prompt"]
+                    # New file attachments still need normal preparation; they
+                    # are deliberately absent from persisted history until this
+                    # exchange succeeds. Prepare separately so prompt.txt cannot
+                    # replace the previously reconstructed history.
+                    base_prompt = await self.prepare_prompt(request)
+                    prompt = (
+                        f"{conversation_history}\n\n=== NEW USER INPUT ===\n{base_prompt}"
+                        if conversation_history
+                        else base_prompt
+                    )
+                    logger.debug(f"{self.get_name()}: Using dispatcher conversation history")
                 else:
                     # No embedded history - reconstruct it (for in-process calls)
                     logger.debug(f"{self.get_name()}: No embedded history found, reconstructing conversation")
 
                     # Get thread context
-                    from utils.conversation_memory import add_turn, build_conversation_history, get_thread
+                    from utils.conversation_memory import build_conversation_history, get_thread
 
                     thread_context = get_thread(continuation_id)
 
                     if thread_context:
-                        # Add user's new input to conversation
-                        user_prompt = self.get_request_prompt(request)
-                        user_files = self.get_request_files(request)
-                        if user_prompt:
-                            add_turn(continuation_id, "user", user_prompt, files=user_files)
-
-                            # Get updated thread context after adding the turn
-                            thread_context = get_thread(continuation_id)
-                            logger.debug(
-                                f"{self.get_name()}: Retrieved updated thread with {len(thread_context.turns)} turns"
-                            )
-
-                        # Build conversation history with updated thread context
+                        # Keep history unchanged until the provider succeeds.
                         conversation_history, conversation_tokens = build_conversation_history(
                             thread_context, self._model_context
                         )
@@ -408,6 +426,11 @@ class SimpleTool(BaseTool):
                 # Get thinking mode with defaults
                 logger.warning(warning)
             thinking_mode = self.get_request_thinking_mode(request)
+            if thinking_mode is not None:
+                from providers.shared import ProviderType
+
+                if self._model_context.provider.get_provider_type() in (ProviderType.CLOUDFLARE, ProviderType.VERCEL):
+                    raise ValueError("Gateway thinking_mode mapping is unverified; use the provider's default")
             if thinking_mode is None:
                 thinking_mode = self.get_default_thinking_mode()
 
@@ -550,6 +573,20 @@ class SimpleTool(BaseTool):
         # Handle conversation continuation like old base.py
         continuation_id = self.get_request_continuation_id(request)
         if continuation_id:
+            from utils.conversation_memory import add_turn
+
+            user_prompt = self._current_arguments.get(
+                "_pending_user_prompt",
+                self._current_arguments.get("_original_user_prompt", self.get_request_prompt(request)),
+            )
+            add_turn(
+                continuation_id,
+                "user",
+                user_prompt,
+                files=self.get_request_files(request),
+                images=self.get_request_images(request),
+                tool_name=self.get_name(),
+            )
             self._record_assistant_turn(continuation_id, raw_text, request, model_info)
 
         # Create continuation offer like old base.py
@@ -587,23 +624,24 @@ class SimpleTool(BaseTool):
         continuation_id = self.get_request_continuation_id(request)
 
         try:
-            from utils.conversation_memory import create_thread, get_thread
+            from utils.conversation_memory import MAX_CONVERSATION_TURNS, create_thread, get_thread
+
+            if MAX_CONVERSATION_TURNS < 2:
+                return None
 
             if continuation_id:
                 # Existing conversation
                 thread_context = get_thread(continuation_id)
                 if thread_context and thread_context.turns:
                     turn_count = len(thread_context.turns)
-                    from utils.conversation_memory import MAX_CONVERSATION_TURNS
-
                     if turn_count >= MAX_CONVERSATION_TURNS - 1:
                         return None  # No more turns allowed
 
-                    remaining_turns = MAX_CONVERSATION_TURNS - turn_count - 1
+                    remaining_turns = MAX_CONVERSATION_TURNS - turn_count
                     return {
                         "continuation_id": continuation_id,
                         "remaining_turns": remaining_turns,
-                        "note": f"You can continue this conversation for {remaining_turns} more exchanges.",
+                        "note": f"You can continue this conversation for {remaining_turns // 2} more exchanges.",
                     }
             else:
                 # New conversation - create thread and offer continuation
@@ -613,7 +651,7 @@ class SimpleTool(BaseTool):
                 new_thread_id = create_thread(tool_name=self.get_name(), initial_request=initial_request_dict)
 
                 # Add the initial user turn to the new thread
-                from utils.conversation_memory import MAX_CONVERSATION_TURNS, add_turn
+                from utils.conversation_memory import add_turn
 
                 user_prompt = self.get_request_prompt(request)
                 user_files = self.get_request_files(request)
@@ -626,8 +664,8 @@ class SimpleTool(BaseTool):
 
                 return {
                     "continuation_id": new_thread_id,
-                    "remaining_turns": MAX_CONVERSATION_TURNS - 1,
-                    "note": f"You can continue this conversation for {MAX_CONVERSATION_TURNS - 1} more exchanges.",
+                    "remaining_turns": MAX_CONVERSATION_TURNS - 2,
+                    "note": f"You can continue this conversation for {(MAX_CONVERSATION_TURNS - 2) // 2} more exchanges.",
                 }
         except Exception:
             return None
@@ -670,6 +708,11 @@ class SimpleTool(BaseTool):
                         except AttributeError:
                             # Fallback if provider doesn't have get_provider_type method
                             metadata["provider_used"] = str(provider)
+
+            if continuation_data["remaining_turns"] < 2:
+                metadata["conversation_ready"] = False
+                metadata["continuation_id"] = continuation_data["continuation_id"]
+                return ToolOutput(status="success", content=content, content_type="text", metadata=metadata)
 
             return ToolOutput(
                 status="continuation_available",
@@ -814,13 +857,19 @@ class SimpleTool(BaseTool):
             prompt_content, updated_files = self.handle_prompt_file(files)
 
             # Update request files list if needed
-            if updated_files is not None:
-                self.set_request_files(request, updated_files)
+            if prompt_content is not None or updated_files is not None:
+                self.set_request_files(request, updated_files or [])
         else:
             prompt_content = None
 
         # Use prompt.txt content if available, otherwise use the prompt field
         user_content = prompt_content if prompt_content else self.get_request_prompt(request)
+        if prompt_content:
+            # Preserve the actual user input in memory after a successful call,
+            # including when prompt.txt replaces the short transport prompt.
+            request.prompt = prompt_content
+            if hasattr(self, "_current_arguments"):
+                self._current_arguments["_pending_user_prompt"] = prompt_content
 
         # Check user input size at MCP transport boundary (excluding conversation history)
         validation_content = self.get_prompt_content_for_size_validation(user_content)
