@@ -22,22 +22,57 @@ Send a prompt, optionally attach files or images, pick a model (or let the agent
 
 **10 providers:**
 
-| Provider | Env Variable | Example Models |
-|----------|-------------|----------------|
-| Google Gemini | `GEMINI_API_KEY` | gemini-3.8-flash, gemini-3.1-pro-preview |
-| OpenAI | `OPENAI_API_KEY` | gpt-6-astra (default), gpt-6-sol, gpt-6-luna |
-| Anthropic | `ANTHROPIC_API_KEY` | claude-opus-5-5 (default), claude-fable-5-1, claude-sonnet-5, claude-haiku-4-5 |
-| xAI | `XAI_API_KEY` | grok-4.6 (default), grok-4.7 |
-| DeepSeek | `DEEPSEEK_API_KEY` | deepseek-flash (V4.1 Flash), deepseek-v4-pro |
-| Moonshot (Kimi) | `MOONSHOT_API_KEY` | kimi-k3, kimi-k2.6 |
-| OpenRouter | `OPENROUTER_API_KEY` | Any OpenRouter model |
-| Cloudflare AI Gateway | `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | `cloudflare/openai/gpt-5.5` |
-| Vercel AI Gateway | `VERCEL_AI_GATEWAY_API_KEY` or `AI_GATEWAY_API_KEY` | `vercel/anthropic/claude-sonnet-4.6` |
+| Provider | Environment variable | Built-in preference or route |
+|----------|----------------------|------------------------------|
+| Google Gemini | `GEMINI_API_KEY` | `gemini-3.8-flash`; `gemini-3.1-pro-preview` for extended reasoning |
+| OpenAI | `OPENAI_API_KEY` | `gpt-6-astra` |
+| Anthropic | `ANTHROPIC_API_KEY` | `claude-opus-5-5`, then `claude-fable-5-1` |
+| xAI | `XAI_API_KEY` | `grok-4.6` |
+| DeepSeek | `DEEPSEEK_API_KEY` | `deepseek-flash` (V4.1 Flash) |
+| Moonshot (Kimi) | `MOONSHOT_API_KEY` | `kimi-k3` |
+| OpenRouter | `OPENROUTER_API_KEY` | Explicit OpenRouter model ID or curated alias |
+| Cloudflare AI Gateway | `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | `cloudflare/<provider>/<model>` |
+| Vercel AI Gateway | `VERCEL_AI_GATEWAY_API_KEY` or `AI_GATEWAY_API_KEY` | `vercel/<provider>/<model>` |
 | Custom | `CUSTOM_API_URL` | Ollama, vLLM, LM Studio, etc. |
+
+These are preferences within each provider. With `auto`, the calling agent chooses
+an available model; if Vox must choose, its existing provider priority applies.
+An explicit model or configured default takes precedence. GPT-6 Sol/Luna, Grok 4.7,
+Claude Fable 5.1, Sonnet 5, and Haiku 4.5 remain selectable. Claude 3 Opus's pinned
+snapshot is preserved for accounts with access.
 
 See [model selections and verification sources](https://github.com/linxule/vox-mcp/blob/main/MODEL_SELECTION.md) for provider preferences, exact API IDs, and reasoning behavior.
 
 ## Quick start
+
+### Published package
+
+With [uv](https://docs.astral.sh/uv/) installed, add Vox to your MCP client's
+configuration. For example, to use OpenAI:
+
+```json
+{
+  "mcpServers": {
+    "vox-mcp": {
+      "command": "uvx",
+      "args": ["vox-mcp"],
+      "env": {
+        "OPENAI_API_KEY": "your-key-here"
+      }
+    }
+  }
+}
+```
+
+Use the environment variable for your preferred provider from the table above.
+Only one provider is required. Connect the server, then ask your agent to call
+`listmodels` to see the models available with your configuration.
+
+For an exact release, use `"args": ["vox-mcp@0.8.0"]`. To refresh a cached
+installation, run `uvx --refresh vox-mcp config show`, then reconnect the MCP server.
+A version pinned in your client configuration must be updated there as well.
+
+### Source checkout
 
 ```bash
 git clone https://github.com/linxule/vox-mcp.git
@@ -51,8 +86,9 @@ uv run python server.py
 ## MCP client configuration
 
 Vox runs as a stdio MCP server. Each client needs to know how to launch it.
-
-Replace `/path/to/vox-mcp` with the absolute path to your cloned repo.
+The following examples use a source checkout; the published-package configuration
+above avoids cloning the repository. Replace `/path/to/vox-mcp` with the absolute
+path to your cloned repo.
 
 ### Claude Code (CLI)
 
@@ -161,10 +197,12 @@ The canonical stdio configuration:
 
 ## Configuration
 
-Copy `.env.example` to `.env` and configure:
+Set these values in your MCP client's Vox `env` object. For a source checkout,
+you can instead copy `.env.example` to `.env`:
 
 - **API keys** — at least one provider key is required
-- **`DEFAULT_MODEL`** — `auto` (default, agent picks) or a specific model name
+- **`DEFAULT_MODEL`** — overrides the saved model preference; `auto` asks the agent to choose
+- **`VOX_CONFIG_PATH`** — optional settings file path (default: `~/.vox/config.json`)
 - **Model restrictions** — `GOOGLE_ALLOWED_MODELS`, `OPENAI_ALLOWED_MODELS`, etc.
 - **`CONVERSATION_TIMEOUT_HOURS`** — thread TTL (default: 24h)
 - **`MAX_CONVERSATION_TURNS`** — thread length limit (default: 100)
@@ -173,13 +211,17 @@ See `.env.example` for the full reference.
 
 ### Set your default model
 
-You or your agent can save a default without editing MCP client configuration:
+Available since 0.8.0. You or your agent can save a default without editing MCP
+client configuration. For example, choose GPT-6 Astra:
 
 ```bash
-uvx vox-mcp config set-default deepseek-flash
+uvx vox-mcp config set-default gpt-6-astra
 uvx vox-mcp config show
-uvx vox-mcp config reset-default
 ```
+
+Replace `gpt-6-astra` with any available model ID, such as `kimi-k3`, `grok-4.6`,
+`claude-opus-5-5`, `claude-fable-5-1`, `deepseek-flash`, or `gemini-3.8-flash`.
+To remove the saved preference, run `uvx vox-mcp config reset-default`.
 
 For a source checkout, use `uv run vox-mcp config ...`. Preferences are stored in
 `~/.vox/config.json`; set `VOX_CONFIG_PATH` to use another file. This file contains
@@ -206,8 +248,14 @@ settings command or MCP client environment for `uvx` installations.
 With `auto`, the agent is asked to select a model for each call. If a caller passes
 `model: "auto"`, Vox uses its built-in provider priority and preferences; this is
 not a live comparison of all providers. Explicit model selections always remain
-available. A useful request to your agent is: “Use Vox listmodels to find my
-preferred model, save it as my default, and tell me how to reconnect Vox.”
+available. An agent with terminal access can do this for you:
+
+> Use Vox listmodels to check that GPT-6 Astra is available. Save it as my Vox
+> default with the config command, check whether DEFAULT_MODEL overrides it,
+> and tell me how to reconnect Vox.
+
+An agent with only Vox's three MCP tools can select a model for each call, but
+cannot persist a preference; saving settings requires terminal or file access.
 
 ## Cloudflare and Vercel AI Gateway
 
