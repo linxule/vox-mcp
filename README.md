@@ -68,7 +68,7 @@ Use the environment variable for your preferred provider from the table above.
 Only one provider is required. Connect the server, then ask your agent to call
 `listmodels` to see the models available with your configuration.
 
-For an exact release, use `"args": ["vox-mcp@0.8.0"]`. To refresh a cached
+For an exact release, use `"args": ["vox-mcp@0.9.0"]`. To refresh a cached
 installation, run `uvx --refresh vox-mcp config show`, then reconnect the MCP server.
 A version pinned in your client configuration must be updated there as well.
 
