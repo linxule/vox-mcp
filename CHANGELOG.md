@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 — 2026-11-07
+
+- Move to the MCP Python SDK 2.x (`mcp>=2.3.0,<3`). Tool listing and results are unchanged for clients: input-schema violations and tool failures still arrive as `isError` results, not protocol errors. The server also accepts 2026-07-28 protocol connections and reports the same server name and version over both handshakes.
+- Declare `jsonschema` directly and raise the Pydantic floor to 2.12, as the SDK requires.
+- Update locked dependencies to clear open security advisories.
+- Add in-process protocol tests over the legacy `initialize` handshake and 2026-07-28 connections.
+
 ## 0.8.0 — 2026-09-26
 
 - Refresh native catalogs and curated OpenRouter routes. Preferred native models are GPT-6 Astra, Kimi K3, Grok 4.6, Claude Opus 5.5 (then Fable 5.1), DeepSeek V4.1 Flash, and Gemini 3.8 Flash / 3.1 Pro Preview. Keep GPT-6 Sol/Luna and Grok 4.7 explicitly selectable. Preserve Claude 3 Opus and historical versioned selections; remove retired Gemini 2.0 models and label 2.5 as legacy.
