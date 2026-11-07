@@ -28,10 +28,15 @@ from pathlib import Path
 from typing import Any
 from weakref import WeakValueDictionary
 
-from mcp.server import Server  # noqa: E402
+import jsonschema  # noqa: E402
+from mcp.server import Server, ServerRequestContext  # noqa: E402
 from mcp.server.models import InitializationOptions  # noqa: E402
 from mcp.server.stdio import stdio_server  # noqa: E402
 from mcp.types import (  # noqa: E402
+    CallToolRequestParams,
+    CallToolResult,
+    ListToolsResult,
+    PaginatedRequestParams,
     ServerCapabilities,
     TextContent,
     Tool,
@@ -139,11 +144,6 @@ if env_override_enabled():
     logger.debug("Environment override prevents conflicts between different AI tools passing cached API keys")
 else:
     logger.debug("VOX_FORCE_ENV_OVERRIDE disabled - system environment variables take precedence")
-
-
-# Create the MCP server instance with a unique name identifier
-# This name is used by MCP clients to identify and connect to this specific server
-server: Server = Server("vox-server")
 
 
 # Constants for tool filtering
@@ -495,8 +495,7 @@ def configure_providers():
             )
 
 
-@server.list_tools()
-async def handle_list_tools() -> list[Tool]:
+async def handle_list_tools(ctx: ServerRequestContext, params: PaginatedRequestParams | None) -> ListToolsResult:
     """
     List all available tools with their descriptions and input schemas.
 
@@ -507,7 +506,7 @@ async def handle_list_tools() -> list[Tool]:
     - inputSchema: JSON Schema defining the expected parameters
 
     Returns:
-        List of Tool objects representing all available tools
+        ListToolsResult with Tool objects representing all available tools
     """
     logger.debug("MCP client requested tool list")
 
@@ -515,7 +514,7 @@ async def handle_list_tools() -> list[Tool]:
     try:
         from utils.client_info import format_client_info, get_client_info_from_context
 
-        client_info = get_client_info_from_context(server)
+        client_info = get_client_info_from_context(ctx)
         if client_info:
             formatted = format_client_info(client_info)
             logger.info(f"MCP Client Connected: {formatted}")
@@ -531,6 +530,19 @@ async def handle_list_tools() -> list[Tool]:
                 pass
     except Exception as e:
         logger.debug(f"Could not log client info during list_tools: {e}")
+
+    tools = _build_tool_definitions()
+    logger.debug(f"Returning {len(tools)} tools to MCP client")
+    return ListToolsResult(tools=tools)
+
+
+# Tool definitions by name, refreshed on every tools/list and on a cache miss,
+# so call-time input validation sees the same schemas the client was given.
+_tool_cache: dict[str, Tool] = {}
+
+
+def _build_tool_definitions() -> list[Tool]:
+    """Build the MCP Tool definitions for every registered tool and refresh the cache."""
     tools = []
 
     # Add all registered AI-powered tools from the TOOLS registry
@@ -543,19 +555,57 @@ async def handle_list_tools() -> list[Tool]:
             Tool(
                 name=tool.name,
                 description=tool.description,
-                inputSchema=tool.get_input_schema(),
+                input_schema=tool.get_input_schema(),
                 annotations=tool_annotations,
             )
         )
 
-    logger.debug(f"Returning {len(tools)} tools to MCP client")
+    _tool_cache.clear()
+    _tool_cache.update({tool.name: tool for tool in tools})
     return tools
+
+
+def _get_cached_tool_definition(name: str) -> Tool | None:
+    if name not in _tool_cache:
+        _build_tool_definitions()
+    tool = _tool_cache.get(name)
+    if tool is None:
+        logger.warning("Tool '%s' not listed, no validation will be performed", name)
+    return tool
+
+
+def _tool_error_result(message: str) -> CallToolResult:
+    return CallToolResult(content=[TextContent(type="text", text=message)], is_error=True)
+
+
+async def handle_mcp_call_tool(ctx: ServerRequestContext, params: CallToolRequestParams) -> CallToolResult:
+    """
+    MCP tools/call entry point.
+
+    SDK 2 dropped the 1.x decorator's input validation, result wrapping and
+    exception-to-error-result conversion; this reproduces all three so clients
+    (and the calling model) keep seeing the same results: schema violations and
+    tool failures arrive as ``isError: true`` results, not JSON-RPC errors.
+    """
+    name = params.name
+    arguments = params.arguments or {}
+    try:
+        tool = _get_cached_tool_definition(name)
+        if tool is not None:
+            try:
+                jsonschema.validate(instance=arguments, schema=tool.input_schema)
+            except jsonschema.ValidationError as e:
+                return _tool_error_result(f"Input validation error: {e.message}")
+
+        content = await handle_call_tool(name, arguments)
+        return CallToolResult(content=list(content), is_error=False)
+    except Exception as e:
+        return _tool_error_result(str(e))
 
 
 _continuation_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
 
 
-@server.call_tool()
 async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """Serialize a thread's exchanges without blocking unrelated conversations."""
     if name not in TOOLS:
@@ -1092,6 +1142,16 @@ async def reconstruct_thread_context(arguments: dict[str, Any]) -> dict[str, Any
         pass
 
     return enhanced_arguments
+
+
+# Name and version match the InitializationOptions passed to run(), so clients see
+# the same serverInfo whether they connect via initialize or the 2026-era discover.
+server: Server = Server(
+    "vox",
+    version=__version__,
+    on_list_tools=handle_list_tools,
+    on_call_tool=handle_mcp_call_tool,
+)
 
 
 async def main():

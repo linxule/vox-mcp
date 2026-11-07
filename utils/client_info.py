@@ -80,9 +80,9 @@ def get_cached_client_info() -> dict[str, Any] | None:
     return _client_info_cache
 
 
-def get_client_info_from_context(server: Any) -> dict[str, Any] | None:
+def get_client_info_from_context(request_context: Any) -> dict[str, Any] | None:
     """
-    Extract client information from the MCP server's request context.
+    Extract client information from an MCP request context.
 
     The MCP protocol sends clientInfo during initialization containing:
     - name: The client application name (e.g., "Claude Code", "Claude Desktop")
@@ -91,7 +91,7 @@ def get_client_info_from_context(server: Any) -> dict[str, Any] | None:
     This function also adds a friendly_name field and caches the result.
 
     Args:
-        server: The MCP server instance
+        request_context: The ServerRequestContext passed to an MCP handler
 
     Returns:
         Dictionary with client info or None if not available:
@@ -108,18 +108,6 @@ def get_client_info_from_context(server: Any) -> dict[str, Any] | None:
         return _client_info_cache
 
     try:
-        # Try to access the request context and session
-        if not server:
-            return None
-
-        # Check if server has request_context property
-        request_context = None
-        try:
-            request_context = server.request_context
-        except AttributeError:
-            logger.debug("Server does not have request_context property")
-            return None
-
         if not request_context:
             logger.debug("Request context is None")
             return None
@@ -139,10 +127,10 @@ def get_client_info_from_context(server: Any) -> dict[str, Any] | None:
         # Try to access client params from session
         client_params = None
         try:
-            # The clientInfo is stored in _client_params.clientInfo
-            client_params = session._client_params
+            # The initialize params (with clientInfo) are on session.client_params
+            client_params = session.client_params
         except AttributeError:
-            logger.debug("Session does not have _client_params property")
+            logger.debug("Session does not have client_params property")
             return None
 
         if not client_params:
@@ -152,9 +140,9 @@ def get_client_info_from_context(server: Any) -> dict[str, Any] | None:
         # Try to extract clientInfo
         client_info = None
         try:
-            client_info = client_params.clientInfo
+            client_info = client_params.client_info
         except AttributeError:
-            logger.debug("Client params does not have clientInfo property")
+            logger.debug("Client params does not have client_info property")
             return None
 
         if not client_info:

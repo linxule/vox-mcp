@@ -19,11 +19,11 @@ classifiers = [
 ]
 urls = { Homepage = "https://github.com/linxule/vox-mcp", Repository = "https://github.com/linxule/vox-mcp", Changelog = "https://github.com/linxule/vox-mcp/blob/main/CHANGELOG.md", Issues = "https://github.com/linxule/vox-mcp/issues" }
 dependencies = [
-    # SDK 2 removes the low-level decorator API used by server.py.
-    "mcp>=1.30.0,<2",
+    "mcp>=2.3.0,<3",
+    "jsonschema>=4.20.0,<5",
     "google-genai>=2.3.0,<3",
     "openai>=2.0.0,<3",
-    "pydantic>=2.11.0,<3",
+    "pydantic>=2.12.0,<3",
     "python-dotenv>=1.0.0",
     "anthropic>=0.69.0,<1",
 ]
